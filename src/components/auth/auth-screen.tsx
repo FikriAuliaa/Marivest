@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
+import { signInAction, signUpAction } from "@/app/actions/auth";
+import type { AuthActionState } from "@/lib/auth/types";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -10,9 +12,46 @@ import { GlassSegment } from "@/components/ui/glass-segment";
 type Mode = "signin" | "signup";
 type AccountType = "pelaku_usaha" | "mitra";
 
+const initialAuthState: AuthActionState = {
+  status: "idle",
+  message: "",
+};
+
+function Feedback({ state }: { state: AuthActionState }) {
+  if (!state.message) {
+    return null;
+  }
+
+  const isSuccess = state.status === "success";
+
+  return (
+    <p
+      role="status"
+      aria-live="polite"
+      className={[
+        "rounded-2xl border px-4 py-3 text-sm leading-6",
+        isSuccess
+          ? "border-emerald-200/25 bg-emerald-100/10 text-emerald-50"
+          : "border-rose-200/25 bg-rose-100/10 text-rose-50",
+      ].join(" ")}
+    >
+      {state.message}
+    </p>
+  );
+}
+
 export function AuthScreen() {
   const [mode, setMode] = useState<Mode>("signin");
   const [accountType, setAccountType] = useState<AccountType>("mitra");
+
+  const [signInState, signInFormAction, signInPending] = useActionState(
+    signInAction,
+    initialAuthState,
+  );
+  const [signUpState, signUpFormAction, signUpPending] = useActionState(
+    signUpAction,
+    initialAuthState,
+  );
 
   return (
     <main className="min-h-screen bg-[#08152d] text-white">
@@ -39,14 +78,18 @@ export function AuthScreen() {
           </div>
 
           <div className="relative z-10 mt-10 space-y-4 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-sky-100/70">Access Portal</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-sky-100/70">
+              Access Portal
+            </p>
             <h1 className="text-3xl font-semibold leading-tight text-white">
-              {mode === "signin" ? "Masuk ke ekosistem MARIVEST" : "Buat akun MARIVEST baru"}
+              {mode === "signin"
+                ? "Masuk ke ekosistem MARIVEST"
+                : "Buat akun MARIVEST baru"}
             </h1>
             <p className="mx-auto max-w-sm text-sm leading-6 text-white/78">
               {mode === "signin"
                 ? "Masuk untuk mengakses perjalanan MARIVEST, memantau pengembangan usaha, dan menjelajahi peluang maritim yang terhubung."
-                : "Daftarkan akun Pelaku Usaha atau Pembeli/Mitra. Akses investor dapat diajukan setelah akun aktif melalui proses validasi tambahan."}
+                : "Daftarkan akun Pelaku Usaha atau Mitra. Akses fitur investasi menggunakan akun Mitra sesuai hak akses yang tersedia."}
             </p>
           </div>
 
@@ -79,46 +122,112 @@ export function AuthScreen() {
             </div>
 
             {mode === "signin" ? (
-              <form className="space-y-4">
+              <form action={signInFormAction} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Email</label>
-                  <GlassInput type="email" placeholder="Masukkan email Anda" />
+                  <label htmlFor="signin-email" className="text-sm text-white/80">
+                    Email
+                  </label>
+                  <GlassInput
+                    id="signin-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Masukkan email Anda"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Password</label>
-                  <GlassInput type="password" placeholder="Masukkan password" />
+                  <label htmlFor="signin-password" className="text-sm text-white/80">
+                    Password
+                  </label>
+                  <GlassInput
+                    id="signin-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="Masukkan password"
+                    required
+                  />
                 </div>
                 <div className="flex items-center justify-between text-xs text-white/70">
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" className="h-4 w-4 rounded border-white/30 bg-transparent" />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-white/30 bg-transparent"
+                    />
                     Ingat saya
                   </label>
-                  <button type="button" className="font-medium text-sky-100 hover:text-white">
+                  <span className="font-medium text-sky-100/70">
                     Lupa password?
-                  </button>
+                  </span>
                 </div>
-                <GlassButton type="submit" fullWidth>
-                  Sign In
+                <Feedback state={signInState} />
+                <GlassButton
+                  type="submit"
+                  fullWidth
+                  disabled={signInPending}
+                  className="disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {signInPending ? "Memproses..." : "Sign In"}
                 </GlassButton>
               </form>
             ) : (
-              <form className="space-y-4">
+              <form action={signUpFormAction} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Nama Lengkap</label>
-                  <GlassInput type="text" placeholder="Masukkan nama lengkap" />
+                  <label htmlFor="signup-name" className="text-sm text-white/80">
+                    Nama Lengkap
+                  </label>
+                  <GlassInput
+                    id="signup-name"
+                    name="full_name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Masukkan nama lengkap"
+                    minLength={2}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Email</label>
-                  <GlassInput type="email" placeholder="Masukkan email aktif" />
+                  <label htmlFor="signup-email" className="text-sm text-white/80">
+                    Email
+                  </label>
+                  <GlassInput
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Masukkan email aktif"
+                    required
+                  />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm text-white/80">Password</label>
-                    <GlassInput type="password" placeholder="Minimal 8 karakter" />
+                    <label htmlFor="signup-password" className="text-sm text-white/80">
+                      Password
+                    </label>
+                    <GlassInput
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Minimal 8 karakter"
+                      minLength={8}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-white/80">Konfirmasi Password</label>
-                    <GlassInput type="password" placeholder="Ulangi password" />
+                    <label htmlFor="signup-confirm" className="text-sm text-white/80">
+                      Konfirmasi Password
+                    </label>
+                    <GlassInput
+                      id="signup-confirm"
+                      name="confirm_password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="Ulangi password"
+                      minLength={8}
+                      required
+                    />
                   </div>
                 </div>
                 <GlassSegment
@@ -130,17 +239,27 @@ export function AuthScreen() {
                     { label: "Pelaku Usaha", value: "pelaku_usaha" },
                   ]}
                 />
+                <input type="hidden" name="role" value={accountType} />
                 <div className="rounded-2xl border border-amber-200/20 bg-amber-100/10 px-4 py-3 text-xs leading-5 text-amber-50/85 backdrop-blur-xl">
-                  Investor menggunakan akun <span className="font-semibold">Pembeli / Mitra</span> dan dapat mengajukan upgrade setelah akun aktif.
+                  Investor menggunakan akun{" "}
+                  <span className="font-semibold">Pembeli / Mitra</span>. Role
+                  SuperAdmin tidak tersedia pada pendaftaran publik.
                 </div>
-                <GlassButton type="submit" fullWidth>
-                  Sign Up
+                <Feedback state={signUpState} />
+                <GlassButton
+                  type="submit"
+                  fullWidth
+                  disabled={signUpPending}
+                  className="disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {signUpPending ? "Memproses..." : "Sign Up"}
                 </GlassButton>
               </form>
             )}
 
             <div className="mt-5 border-t border-white/10 pt-4 text-center text-xs leading-5 text-white/65">
-              Dengan melanjutkan, Anda menyetujui kebijakan platform dan penggunaan ekosistem MARIVEST untuk kebutuhan simulasi sistem.
+              Dengan melanjutkan, Anda menyetujui kebijakan platform dan
+              penggunaan ekosistem MARIVEST untuk kebutuhan simulasi sistem.
             </div>
           </GlassCard>
         </section>
