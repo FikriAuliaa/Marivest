@@ -1,6 +1,6 @@
 import type { CartView, CommitmentView, FundingView, NotificationView, OrderView, ProductView } from "./types";
 
-const fallback = "/images/pon.jpg";
+const fallback = "/images/pon.jfif";
 
 function imageOrFallback(value: string | null | undefined): string {
   if (typeof value !== "string") return fallback;
@@ -46,7 +46,8 @@ export function cartFromRow(row: CartRow): CartView {
 
 export type OrderRow = {
   id: string; quantity: number; total_amount: number; status: OrderView["status"];
-  created_at: string; products: { name: string; unit: string } | null;
+  created_at: string; shipping_status?: "not_shipped" | "in_transit" | "delivered";
+  checkout_id?: string | null; products: { name: string; unit: string } | null;
 };
 export function orderFromRow(row: OrderRow): OrderView {
   return {
@@ -55,6 +56,8 @@ export function orderFromRow(row: OrderRow): OrderView {
     total: Number(row.total_amount),
     status: row.status,
     date: row.created_at,
+    shippingStatus: row.shipping_status ?? "not_shipped",
+    checkoutId: row.checkout_id ?? null,
     productName: row.products?.name ?? "Produk perikanan",
     unit: row.products?.unit ?? "kg",
   };

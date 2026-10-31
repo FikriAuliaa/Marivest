@@ -1,0 +1,12 @@
+.page{min-height:100svh;background:#edf1f7;color:#08152d;font-family:var(--font-poppins),Arial,sans-serif}
+.device{max-width:480px;min-height:100svh;margin:auto;padding:24px 18px 44px;background:#f5f7fa;box-shadow:0 12px 34px rgba(8,21,45,.08)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;font-size:13px;font-weight:600}
+.top a{color:#30455e;text-decoration:none}.top strong{letter-spacing:.16em}
+.device h1{font-size:26px;font-weight:700;line-height:1.25;margin:0 0 24px}
+.stack{display:flex;flex-direction:column;gap:14px}.card{padding:18px;border:1px solid #dfe5ec;background:#fff;border-radius:22px;margin-bottom:10px;box-shadow:0 9px 20px rgba(8,21,45,.045)}
+.card h2{margin:0 0 16px;font-size:16px;font-weight:700}.item{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #e8edf3}.item:last-child{border:0}
+.picture{position:relative;width:58px;height:58px;border-radius:12px;overflow:hidden}.picture img{object-fit:cover}.item strong,.item b{font-size:12px}.item small{display:block;color:#69798d;font-size:10px;margin-top:4px}
+.amount{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0;font-size:12px}.amount b,.amount strong{font-size:13px;text-align:right}.total{border-top:1px solid #e2e7ee;padding-top:13px;font-weight:700}.total strong{font-size:16px}
+.card label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;margin:14px 0}.card input,.card textarea,.card select{width:100%;background:#f6f8fb;border:1px solid #d8e0e9;border-radius:13px;min-height:45px;padding:10px 12px;font:inherit;font-weight:400;color:#08152d}.card textarea{resize:vertical}
+.note{font-size:12px;line-height:1.7;color:#718096}.primary{display:flex;align-items:center;justify-content:center;min-height:50px;padding:13px 18px;border:0;border-radius:26px;background:#08152d;color:white;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;text-align:center}.primary:disabled{opacity:.55;cursor:wait}
+.error{border-radius:14px;background:#ffeced;padding:12px;color:#9e3445;font-size:12px}.successIcon{width:75px;height:75px;margin:50px auto 24px;border-radius:50%;display:grid;place-items:center;background:#e4ece8;color:#175c43;font-size:35px;font-weight:700}.successIcon+h1{text-align:center}

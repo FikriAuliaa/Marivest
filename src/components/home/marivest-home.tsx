@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { signOutAction } from "@/app/actions/auth";
 import { registerInvestorAction, revokeInvestorAction } from "@/app/actions/investor";
 import {
-  setCartQuantityAction, checkoutCartAction, commitFundingAction,
+  setCartQuantityAction, commitFundingAction,
   markNotificationReadAction, changeProfileNameAction, changePasswordAction,
 } from "@/app/actions/buyer";
 import type { AppRole } from "@/lib/auth/types";
@@ -176,6 +176,11 @@ export function MarivestHome({
       && (!query || `${item.name} ${item.seller} ${item.category} ${item.location}`.toLowerCase().includes(query)));
   }, [products, category, search]);
   const subtotal = cart.reduce((total, entry) => total + orderTotal(entry.product.price, entry.quantity), 0);
+  useEffect(() => {
+    if (tab !== "notifications" && modal !== "orders") return;
+    const timer = setInterval(() => router.refresh(), 15000);
+    return () => clearInterval(timer);
+  }, [router, tab, modal]);
 
   async function perform(operation: () => Promise<ActionResult>, onSuccess?: () => void) {
     if (busy) return;
@@ -373,13 +378,16 @@ export function MarivestHome({
         <button className={styles.removeButton} type="button" disabled={busy} onClick={() => perform(() => setCartQuantityAction(entry.productId, 0))} aria-label={`Hapus ${entry.product.name}`}><Icon name="close" size={15}/></button>
       </article>)}</div> : <div className={styles.emptyCart}><Icon name="cart" size={28}/><strong>Keranjang kosong</strong><p>Tambahkan produk dari Marketplace.</p></div>}
       <div className={styles.cartTotalRow}><span>Subtotal</span><strong>{rupiah(subtotal)}</strong></div>
-      <p className={styles.privacyNote}>Pemesanan dicatat tanpa pembayaran atau pengiriman otomatis.</p>
-      <button type="button" className={styles.primaryButton} disabled={busy || cart.length === 0} onClick={() => perform(checkoutCartAction, () => setModal("orders"))}>{busy ? "Memproses..." : "Buat Pesanan"}</button>
+      <p className={styles.privacyNote}>Biaya ongkir dan pengemasan akan ditambahkan pada halaman pembayaran. Seluruh pembayaran bersifat simulasi.</p>
+      <button type="button" className={styles.primaryButton} disabled={busy || cart.length === 0} onClick={() => router.push("/checkout")}>Lanjut ke Pembayaran</button>
       <button type="button" className={styles.secondaryButton} onClick={() => setModal("orders")}>Riwayat Pesanan</button>
     </Modal> : null}
     {modal === "orders" ? <Modal title="Riwayat Pesanan" onClose={() => setModal(null)}>
       {orders.length ? <div className={styles.orderList}>{orders.map((item) => <article className={styles.orderCard} key={item.id}>
-        <div className={styles.orderInfo}><strong>{item.productName}</strong><span>{item.quantity} {item.unit} · {statusLabels[item.status]}</span><b>{rupiah(item.total)}</b>
+        <div className={styles.orderInfo}><strong>{item.productName}</strong>
+          <span>{item.quantity} {item.unit} · {item.status === "confirmed" && item.shippingStatus === "in_transit" ? "Sedang dikirim" : item.status === "completed" ? "Pesanan selesai" : statusLabels[item.status]}</span>
+          {item.status === "confirmed" ? <span>Pesanan berhasil dibuat, telah diverifikasi penjual.</span> : null}
+          <b>{rupiah(item.total)}</b>
           <small>{new Date(item.date).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small></div>
       </article>)}</div> : <div className={styles.emptyCart}><strong>Belum ada pesanan</strong></div>}
     </Modal> : null}
