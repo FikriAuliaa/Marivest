@@ -1,0 +1,66 @@
+name: CI
+
+# Gerbang kualitas untuk setiap PR dan push ke main.
+# Next.js 16 tidak lagi menjalankan lint saat `next build`, jadi lint dijalankan terpisah di sini.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      # Nilai dummy agar `next build` tidak crash bila client Supabase dibuat saat modul dimuat.
+      # Isi Repository Variables dengan nilai asli jika build butuh koneksi sungguhan.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_placeholder' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cek kebocoran secret
+        run: bash scripts/check-secrets.sh
+
+      - name: Deteksi aplikasi
+        id: app
+        run: |
+          if [ -f package.json ]; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; echo "::notice::package.json belum ada, langkah Node dilewati."; fi
+          if [ -f package-lock.json ]; then echo "lock=true" >> "$GITHUB_OUTPUT"; else echo "lock=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-node@v6
+        if: steps.app.outputs.exists == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: ${{ steps.app.outputs.lock == 'true' && 'npm' || '' }}
+
+      - name: Install dependencies
+        if: steps.app.outputs.exists == 'true'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else echo "::warning::package-lock.json tidak ada, pakai npm install"; npm install; fi
+
+      - name: Lint
+        if: steps.app.outputs.exists == 'true'
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        if: steps.app.outputs.exists == 'true'
+        run: npm run typecheck --if-present
+
+      - name: Unit test
+        if: steps.app.outputs.exists == 'true'
+        run: npm run test:ci --if-present
+
+      - name: Build
+        if: steps.app.outputs.exists == 'true'
+        run: npm run build

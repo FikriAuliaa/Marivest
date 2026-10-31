@@ -1,0 +1,4 @@
+# OPSIONAL. Rute statis di app/ sudah ditemukan otomatis oleh smoke.sh.
+# Tambahkan di sini hanya rute dinamis yang ingin ikut dicek, misalnya:
+# /proyek/1
+# /produk/1

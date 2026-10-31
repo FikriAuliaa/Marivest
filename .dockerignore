@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+build
+coverage
+.git
+.github
+.vercel
+.env
+.env.*
+!.env.example
+npm-debug.log*
+Dockerfile*
+compose.yaml
+docs

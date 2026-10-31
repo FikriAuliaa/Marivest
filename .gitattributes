@@ -1,0 +1,9 @@
+# Paksa LF agar skrip shell & Docker tidak rusak saat di-commit dari Windows
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary
