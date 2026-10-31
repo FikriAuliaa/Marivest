@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { MarivestHome } from "@/components/home/marivest-home";
+import { SellerDashboard } from "@/components/seller/seller-dashboard";
+import { loadSellerData } from "@/lib/seller/data";
 import { requireProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -18,6 +20,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   await connection();
   const profile = await requireProfile();
   if (profile.role === "superadmin") redirect("/admin");
+  if (profile.role === "pelaku_usaha") {
+    const seller = await loadSellerData(profile.id);
+    const { tab } = await searchParams;
+    const initialTab = tab === "shop" || tab === "funding" || tab === "notifications" || tab === "profile" ? tab : "home";
+    return <SellerDashboard
+      fullName={profile.fullName}
+      businesses={seller.businesses}
+      products={seller.products}
+      projects={seller.projects}
+      orders={seller.orders}
+      notifications={seller.notifications}
+      initialTab={initialTab}
+      dataError={seller.errors.length ? "Sebagian data belum dapat dimuat. Periksa migrasi dan RLS Supabase." : null}
+    />;
+  }
 
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
@@ -38,7 +55,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       : Promise.resolve({ data: [], error: null }),
     isMitra
       ? supabase.from("orders")
-          .select("id,quantity,total_amount,status,created_at,products(name,unit)")
+          .select("id,quantity,total_amount,status,shipping_status,checkout_id,created_at,products(name,unit)")
           .eq("buyer_id", profile.id).order("created_at", { ascending: false }).limit(50)
       : Promise.resolve({ data: [], error: null }),
     isMitra
@@ -76,7 +93,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const orders: OrderView[] = ((ordersResult.data ?? []) as unknown as OrderRow[]).map(orderFromRow);
   const notifications: NotificationView[] = ((notificationsResult.data ?? []) as unknown as NotificationRow[]).map(notificationFromRow);
   const { tab } = await searchParams;
-  const initialTab = tab === "investor" && isMitra ? "investor" : tab === "profile" ? "profile" : "home";
+  const initialTab = tab === "investor" && isMitra ? "investor" : tab === "profile" ? "profile" : tab === "marketplace" ? "marketplace" : tab === "notifications" ? "notifications" : "home";
 
   return (
     <MarivestHome

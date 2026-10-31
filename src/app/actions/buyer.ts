@@ -34,13 +34,33 @@ export async function setCartQuantityAction(productId: string, quantity: number)
   return { status: "success", message: quantity === 0 ? "Produk dihapus dari keranjang." : "Keranjang diperbarui." };
 }
 
-export async function checkoutCartAction(): Promise<ActionResult> {
+export async function checkoutCartAction(input: {
+  method: string;
+  recipientName: string;
+  phone: string;
+  address: string;
+  idempotencyKey: string;
+}): Promise<ActionResult & { checkoutId?: string }> {
+  const allowed = ["qris", "bank_transfer", "ovo", "dana", "shopeepay", "credit_card"];
+  if (!allowed.includes(input.method) || !validUuid(input.idempotencyKey) ||
+      input.recipientName.trim().length < 2 || input.recipientName.trim().length > 120 ||
+      input.address.trim().length < 8 || input.address.trim().length > 500 ||
+      input.phone.replace(/\D/g, "").length < 8 || input.phone.replace(/\D/g, "").length > 16) {
+    return errorResult("Lengkapi nama penerima, alamat, nomor telepon, dan metode pembayaran.");
+  }
   const auth = await authenticatedClient();
   if (!auth) return errorResult("Silakan masuk kembali.");
-  const { error } = await auth.supabase.rpc("checkout_cart");
-  if (error) return errorResult(`Pesanan tidak dapat disimpan: ${error.message}`);
+  const { data, error } = await auth.supabase.rpc("checkout_cart", {
+    p_payment_method: input.method,
+    p_recipient_name: input.recipientName.trim(),
+    p_shipping_phone: input.phone.trim(),
+    p_shipping_address: input.address.trim(),
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error || typeof data !== "string") return errorResult(`Pesanan tidak dapat dibuat: ${error?.message ?? "Respons database tidak valid"}`);
   revalidatePath("/dashboard");
-  return { status: "success", message: "Pesanan tersimpan dan menunggu konfirmasi penjual. Tidak ada pembayaran yang diproses." };
+  revalidatePath("/checkout");
+  return { status: "success", message: "Pembayaran simulasi tercatat. Menunggu verifikasi penjual.", checkoutId: data };
 }
 
 export async function commitFundingAction(projectId: string, amount: number, idempotencyKey: string): Promise<ActionResult> {
