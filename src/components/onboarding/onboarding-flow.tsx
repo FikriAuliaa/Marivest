@@ -9,6 +9,7 @@ type HeroSlide = {
   id: number;
   image: string;
   title: string;
+  lines: [string, string];
 };
 
 const heroSlides: HeroSlide[] = [
@@ -16,11 +17,13 @@ const heroSlides: HeroSlide[] = [
     id: 1,
     image: "/images/fish-cleaning.jfif",
     title: "Mengubah Gelombang Menyalakan Masa Depan",
+    lines: ["Mengubah Gelombang", "Menyalakan Masa Depan"],
   },
   {
     id: 2,
     image: "/images/fisher.jfif",
     title: "Dari Pesisir Laut Melintas Keberagaman",
+    lines: ["Dari Pesisir Laut", "Melintas Keberagaman"],
   },
 ];
 
@@ -63,10 +66,10 @@ export function OnboardingFlow() {
   };
 
   return (
-    <main className="min-h-screen bg-[#08152d] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col overflow-hidden bg-slate-950 shadow-[0_30px_120px_rgba(0,0,0,0.32)] md:rounded-[36px] md:border md:border-white/10">
+    <main className="min-h-dvh bg-[#08152d] text-white">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-hidden bg-slate-950 shadow-[0_30px_120px_rgba(0,0,0,0.32)] [container-type:inline-size] md:rounded-[36px] md:border md:border-white/10">
         {step < heroSlides.length ? (
-          <section className="relative flex min-h-screen flex-1 flex-col overflow-hidden">
+          <section className="relative h-dvh min-h-[540px] w-full overflow-hidden">
             <div className="absolute inset-0">
               <Image
                 src={currentSlide.image}
@@ -90,19 +93,16 @@ export function OnboardingFlow() {
               </button>
             </div>
 
-            {/* Text is placed directly over the photograph, not inside a glass card. */}
-            <div className="relative z-10 mt-auto px-6 pb-28 pt-12 text-center">
-              <h1
-                className={[
-                  "mx-auto max-w-[34rem] text-balance font-medium leading-[1.18] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.55)]",
-                  step === 0 ? "text-[2rem] tracking-[-0.035em] sm:text-[2.15rem]" : "text-[1.8rem] tracking-[-0.025em] sm:text-[2rem]",
-                ].join(" ")}
-              >
-                {currentSlide.title}
+            {/* Two intentionally fixed lines match the original splash composition. */}
+            <div className="absolute inset-x-0 bottom-[clamp(143px,21dvh,196px)] z-10 px-4 text-center">
+              <h1 className="mx-auto max-w-full text-[clamp(1.12rem,5.9cqw,1.7rem)] font-semibold leading-[1.2] tracking-[-0.035em] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.55)]">
+                {currentSlide.lines.map((line) => (
+                  <span key={line} className="block whitespace-nowrap">{line}</span>
+                ))}
               </h1>
             </div>
 
-            <div className="relative z-10 space-y-5 px-5 pb-8">
+            <div className="absolute inset-x-0 bottom-0 z-10 space-y-4 px-5 pb-[max(18px,env(safe-area-inset-bottom))]">
               <div className="flex justify-center gap-2">
                 {heroSlides.map((slide, index) => (
                   <button

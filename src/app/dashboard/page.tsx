@@ -1,70 +1,97 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { MarivestHome } from "@/components/home/marivest-home";
 import { requireProfile } from "@/lib/auth/profile";
-import { signOutAction } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/server";
+import {
+  cartFromRow, commitmentFromRow, fundingFromRow, notificationFromRow,
+  orderFromRow, productFromRow,
+  type CartRow, type CommitmentRow, type FundingRow, type NotificationRow,
+  type OrderRow, type ProductRow,
+} from "@/lib/domain/queries";
+import type { InvestorStatus } from "@/lib/investor/types";
+import type { CartView, CommitmentView, FundingView, NotificationView, OrderView, ProductView } from "@/lib/domain/types";
 
-export default async function DashboardPage() {
+type DashboardPageProps = { searchParams: Promise<{ tab?: string }> };
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   await connection();
-
   const profile = await requireProfile();
+  if (profile.role === "superadmin") redirect("/admin");
 
-  if (profile.role === "superadmin") {
-    redirect("/admin");
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const isMitra = profile.role === "mitra";
+  const requests = await Promise.all([
+    supabase.from("products")
+      .select("id,name,category,description,price,unit,stock,image_url,business_profiles(name,city)")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    isMitra
+      ? supabase.from("investor_registrations").select("status").eq("user_id", profile.id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    isMitra
+      ? supabase.from("cart_items")
+          .select("id,product_id,quantity,products(id,name,category,description,price,unit,stock,image_url,business_profiles(name,city))")
+          .eq("buyer_id", profile.id).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    isMitra
+      ? supabase.from("orders")
+          .select("id,quantity,total_amount,status,created_at,products(name,unit)")
+          .eq("buyer_id", profile.id).order("created_at", { ascending: false }).limit(50)
+      : Promise.resolve({ data: [], error: null }),
+    isMitra
+      ? supabase.from("notifications")
+          .select("id,title,body,is_read,created_at")
+          .eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const [productsResult, investorResult, cartResult, ordersResult, notificationsResult] = requests;
+  const investorStatus: InvestorStatus = investorResult.data?.status === "active"
+    ? "active" : investorResult.data?.status === "revoked" ? "revoked" : "not_registered";
+
+  const errors = [productsResult.error, investorResult.error, cartResult.error, ordersResult.error, notificationsResult.error]
+    .filter((value) => value !== null);
+
+  let funding: FundingView[] = [];
+  let commitments: CommitmentView[] = [];
+  if (isMitra && investorStatus === "active") {
+    const [fundingResult, commitmentsResult] = await Promise.all([
+      supabase.rpc("list_funding_opportunities"),
+      supabase.from("funding_commitments").select("id,project_id,amount,created_at")
+        .eq("investor_id", profile.id).order("created_at", { ascending: false }).limit(30),
+    ]);
+    if (fundingResult.error) errors.push(fundingResult.error);
+    if (commitmentsResult.error) errors.push(commitmentsResult.error);
+    funding = ((fundingResult.data ?? []) as unknown as FundingRow[]).map(fundingFromRow);
+    commitments = ((commitmentsResult.data ?? []) as unknown as CommitmentRow[]).map(commitmentFromRow);
   }
 
-  const isSeller = profile.role === "pelaku_usaha";
+  const products: ProductView[] = ((productsResult.data ?? []) as unknown as ProductRow[]).map(productFromRow);
+  const cart: CartView[] = ((cartResult.data ?? []) as unknown as CartRow[])
+    .filter((row) => row.products !== null)
+    .map(cartFromRow);
+  const orders: OrderView[] = ((ordersResult.data ?? []) as unknown as OrderRow[]).map(orderFromRow);
+  const notifications: NotificationView[] = ((notificationsResult.data ?? []) as unknown as NotificationRow[]).map(notificationFromRow);
+  const { tab } = await searchParams;
+  const initialTab = tab === "investor" && isMitra ? "investor" : tab === "profile" ? "profile" : "home";
 
   return (
-    <main className="min-h-screen bg-[#08152d] px-5 py-10 text-white">
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="glass-badge">MARIVEST</div>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm text-white transition hover:bg-white/15"
-            >
-              Keluar
-            </button>
-          </form>
-        </header>
-
-        <div className="rounded-[28px] border border-white/15 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-10">
-          <p className="text-sm font-medium uppercase tracking-[0.22em] text-sky-100/70">
-            Dashboard {isSeller ? "Pelaku Usaha" : "Mitra"}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Selamat datang, {profile.fullName}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/75 sm:text-base">
-            {isSeller
-              ? "Anda masuk sebagai Pelaku Usaha. Area ini akan menjadi pusat pengelolaan profil usaha, produk perikanan, dan proyek pendanaan Anda."
-              : "Anda masuk sebagai Mitra. Area ini akan menjadi pusat untuk menjelajahi produk perikanan dan melihat peluang pendanaan simulasi."}
-          </p>
-          <div className="mt-7 inline-flex rounded-full border border-emerald-200/20 bg-emerald-200/10 px-4 py-2 text-xs font-medium text-emerald-100">
-            Akun terautentikasi
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <article className="rounded-2xl border border-white/12 bg-white/[0.06] p-6">
-            <h2 className="text-lg font-semibold">Marketplace</h2>
-            <p className="mt-2 text-sm leading-6 text-white/65">
-              {isSeller
-                ? "Pengelolaan katalog produk akan dihubungkan pada tahap Marketplace."
-                : "Katalog produk dan pemesanan simulasi akan dihubungkan pada tahap Marketplace."}
-            </p>
-          </article>
-          <article className="rounded-2xl border border-white/12 bg-white/[0.06] p-6">
-            <h2 className="text-lg font-semibold">Financial & Investment</h2>
-            <p className="mt-2 text-sm leading-6 text-white/65">
-              {isSeller
-                ? "Pengajuan proyek pendanaan dan laporan usaha akan dihubungkan pada tahap Financial."
-                : "Komitmen pendanaan simulasi dan ilustrasi bagi hasil akan dihubungkan pada tahap Financial."}
-            </p>
-          </article>
-        </div>
-      </section>
-    </main>
+    <MarivestHome
+      fullName={profile.fullName}
+      email={authData.user?.email ?? ""}
+      role={profile.role}
+      investorStatus={investorStatus}
+      products={products}
+      cart={cart}
+      orders={orders}
+      notifications={notifications}
+      projects={funding}
+      commitments={commitments}
+      initialTab={initialTab}
+      dataError={errors.length ? "Sebagian data belum dapat dimuat. Pastikan migration Supabase sudah diterapkan." : null}
+    />
   );
 }
