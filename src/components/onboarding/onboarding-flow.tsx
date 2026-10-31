@@ -15,13 +15,13 @@ type HeroSlide = {
 const heroSlides: HeroSlide[] = [
   {
     id: 1,
-    image: "/images/fish-cleaning.jfif",
+    image: "/images/fish-cleaning.jpg",
     title: "Mengubah Gelombang Menyalakan Masa Depan",
     lines: ["Mengubah Gelombang", "Menyalakan Masa Depan"],
   },
   {
     id: 2,
-    image: "/images/fisher.jfif",
+    image: "/images/fisher.jpg",
     title: "Dari Pesisir Laut Melintas Keberagaman",
     lines: ["Dari Pesisir Laut", "Melintas Keberagaman"],
   },
@@ -30,21 +30,21 @@ const heroSlides: HeroSlide[] = [
 const imageCards = [
   {
     id: "pon",
-    image: "/images/pon.jfif",
+    image: "/images/pon.jpg",
     alt: "Kolam dan aktivitas budidaya perikanan",
     title: "Kolam & Budidaya",
     description: "Ekosistem pembudidayaan dan pengelolaan ikan.",
   },
   {
     id: "nelaya",
-    image: "/images/nnelayan.jfif",
+    image: "/images/nnelayan.jpg",
     alt: "Nelayan menangkap ikan di laut",
     title: "Nelayan",
     description: "Aktivitas nelayan dan hasil tangkapan laut.",
   },
   {
     id: "tambak",
-    image: "/images/tambak.jfif",
+    image: "/images/tambak.jpg",
     alt: "Tambak dan komunitas perikanan",
     title: "Tambak & Komunitas",
     description: "Pengelolaan tambak dan penguatan komunitas perikanan.",

@@ -221,7 +221,7 @@ export function MarivestHome({
       <button type="button" aria-label="Buka marketplace" onClick={() => { setSearch(""); setTab("marketplace"); }}><Icon name="filter" size={16} /></button>
     </label>
     <section className={styles.heroBanner}>
-      <Image src="/images/pon.jfif" alt="Budidaya perikanan" fill priority sizes="(max-width: 480px) 100vw, 440px" className={styles.heroImage} />
+      <Image src="/images/pon.jpg" alt="Budidaya perikanan" fill priority sizes="(max-width: 480px) 100vw, 440px" className={styles.heroImage} />
       <div className={styles.heroShade}/>
       <span className={styles.heroPill}><Icon name="waves" size={13} /> EKOSISTEM PERIKANAN</span>
       <div className={styles.heroCopy}><p>DARI PESISIR UNTUK MASA DEPAN</p><h2>Jelajahi hasil laut. Dukung usaha lokal.</h2>
@@ -254,7 +254,7 @@ export function MarivestHome({
       <div className={styles.investorGateBackdrop} aria-hidden="true">
         {["Tambak berkelanjutan", "Penguatan nelayan", "Pakan budidaya"].map((name, i) => (
           <div key={name} className={styles.previewFundingCard}>
-            <Image src={["/images/pon.jfif", "/images/nelayan.jfif", "/images/tambak.jfif"][i]} alt="" width={100} height={100} />
+            <Image src={["/images/pon.jpg", "/images/nelayan.jpg", "/images/tambak.jpg"][i]} alt="" width={100} height={100} />
             <div><strong>{name}</strong><span>Ekosistem perikanan</span><span className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${(i + 2) * 19}%` }}/></span></div>
           </div>
         ))}
