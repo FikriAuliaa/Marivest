@@ -53,7 +53,7 @@ export async function signInAction(
     return { status: "error", message: errorMessage(error.message) };
   }
 
-  redirect("/dashboard");
+  redirect("/welcome");
 }
 
 export async function signUpAction(

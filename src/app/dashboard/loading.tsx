@@ -1,5 +1,8 @@
-import { MobileLoading } from "@/components/ui/mobile-loading";
-
+/**
+ * Tidak menampilkan loading screen terpisah.
+ * Splash login di root layout tetap menutup layar sampai DashboardReady
+ * memberi sinyal bahwa konten dashboard sudah ter-render.
+ */
 export default function DashboardLoading() {
-  return <MobileLoading title="Menyiapkan MARIVEST..." description="Memuat data usaha, toko, dan pendanaan"/>;
+  return null;
 }

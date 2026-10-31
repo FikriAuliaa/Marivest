@@ -47,9 +47,9 @@ const nav: { id: Tab; label: string; icon: IconName }[] = [
 const categories: { label: string; icon: IconName }[] = [
   { label: "Semua", icon: "grid" },
   { label: "Ikan Segar", icon: "fish" },
-  { label: "Udang", icon: "waves" },
+  { label: "Udang", icon: "shrimp" },
   { label: "Budidaya", icon: "leaf" },
-  { label: "Rumput Laut", icon: "sparkles" },
+  { label: "Rumput Laut", icon: "wheat" },
   { label: "Hasil Laut", icon: "shopping-bag" },
 ];
 const interests = [

@@ -2,6 +2,8 @@ import type { SVGProps } from "react";
 
 export type IconName =
   | "fish"
+  | "shrimp"
+  | "wheat"
   | "home"
   | "search"
   | "heart"
@@ -56,6 +58,23 @@ export function Icon({
     ...props,
   };
 
+  if (name === "wheat") {
+    return (
+      <span
+        className="material-symbols-outlined"
+        style={{
+          fontSize: size,
+          fontFamily: '"Material Symbols Outlined"',
+          fontFeatureSettings: '"liga"',
+          fontVariationSettings: '"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24',
+        }}
+        aria-hidden="true"
+      >
+        wheat
+      </span>
+    );
+  }
+
   switch (name) {
     case "fish":
       return (
@@ -64,6 +83,16 @@ export function Icon({
           <path d="m3 12-1.5-3v6L3 12Z" />
           <path d="M12 8.8c1.2 1.8 1.2 4.6 0 6.4" />
           <circle cx="16.2" cy="10.2" r=".7" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "shrimp":
+      return (
+        <svg {...common}>
+          <path d="M19.2 5.2c-3.6-1.4-7.6-.4-10.1 2.2-2.5 2.6-2.8 6.2-.7 8.5 2.2 2.4 6 2.5 8.8.3 1.8-1.4 2.8-3.4 2.8-5.5" />
+          <path d="m19.2 10.7 2.7-2.4.1 3.3-2.8 2.4" />
+          <path d="M9.2 7.1 6.4 4.5M7.8 8.5 3.7 7.1M11.2 16.3l-1.4 3M14.4 16.2l.1 3.2M17.1 14.8l1.3 2.7" />
+          <path d="m10.2 7.7 1.5 4.1m1.1-5.2 1.2 5.5m1.5-5.2.7 5.2" />
+          <circle cx="17.1" cy="7.3" r=".8" fill="currentColor" stroke="none" />
         </svg>
       );
     case "home":
