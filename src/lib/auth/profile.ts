@@ -1,3 +1,4 @@
+
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAppRole, type AppRole } from "./types";
@@ -10,14 +11,16 @@ export type CurrentProfile = {
 
 export async function requireProfile(): Promise<CurrentProfile> {
   const supabase = await createClient();
+
   const {
-    data: { claims },
+    data,
     error: claimsError,
   } = await supabase.auth.getClaims();
 
-  const userId = claims?.sub;
+  // Pastikan data dan claims tersedia sebelum mengambil user ID.
+  const userId = data?.claims?.sub;
 
-  if (claimsError || !userId) {
+  if (claimsError || typeof userId !== "string" || !userId) {
     redirect("/login");
   }
 
