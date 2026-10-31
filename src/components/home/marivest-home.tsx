@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useActionState, useMemo, useState, type ReactNode } from "react";
 import { signOutAction } from "@/app/actions/auth";
+import { registerInvestorAction, revokeInvestorAction } from "@/app/actions/investor";
 import type { AppRole } from "@/lib/auth/types";
+import type { InvestorActionState, InvestorStatus } from "@/lib/investor/types";
 import { Icon, type IconName } from "./icons";
 import styles from "./marivest-home.module.css";
 
@@ -40,6 +42,12 @@ type FundingProject = {
 type MarivestHomeProps = {
   fullName: string;
   role: UserRole;
+  investorStatus: InvestorStatus;
+};
+
+const INITIAL_INVESTOR_ACTION_STATE: InvestorActionState = {
+  status: "idle",
+  message: "",
 };
 
 const featuredProducts: Product[] = [
@@ -279,16 +287,16 @@ function ProductCard({
   );
 }
 
-function FundingCard({ project, onOpen }: { project: FundingProject; onOpen: () => void }) {
+function FundingCard({ project, onOpen, disabled = false }: { project: FundingProject; onOpen: () => void; disabled?: boolean }) {
   const progress = Math.min(100, Math.round((project.raised / project.target) * 100));
 
   return (
-    <button className={styles.fundingCard} type="button" onClick={onOpen}>
+    <button className={styles.fundingCard} type="button" onClick={onOpen} disabled={disabled} tabIndex={disabled ? -1 : undefined}>
       <span className={styles.fundingImageWrap}>
         <Image src={project.image} alt={project.title} fill sizes="120px" className={styles.fundingImage} />
       </span>
       <span className={styles.fundingContent}>
-        <span className={styles.fundingTag}>{project.category}</span>
+        <span className={styles.fundingTag}>{project.category} · SIMULASI</span>
         <strong className={styles.fundingTitle}>{project.title}</strong>
         <span className={styles.fundingBusiness}>{project.business}</span>
         <span className={styles.fundingLocation}><Icon name="map-pin" size={12} /> {project.location}</span>
@@ -334,8 +342,14 @@ function SectionHeading({
   );
 }
 
-export function MarivestHome({ fullName, role }: MarivestHomeProps) {
+export function MarivestHome({ fullName, role, investorStatus }: MarivestHomeProps) {
   const isSeller = role === "pelaku_usaha";
+  const investorRegistered = role === "mitra" && investorStatus === "active";
+  const profileRoleLabel = isSeller
+    ? "Pelaku Usaha Perikanan"
+    : investorRegistered
+      ? "Investor"
+      : "Mitra / Investor (Perlu Pendaftaran)";
   const firstName = fullName.trim().split(/\s+/)[0] || "Sahabat";
   const initials =
     fullName
@@ -351,18 +365,21 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
   const [products] = useState<Product[]>(featuredProducts);
   const [projects] = useState<FundingProject[]>(fundingProjects);
   const [cartIds, setCartIds] = useState<string[]>(["bandeng", "udang"]);
-  const [investorRegistered, setInvestorRegistered] = useState(role === "mitra");
   const [modal, setModal] = useState<ModalKey>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProject, setSelectedProject] = useState<FundingProject | null>(null);
   const [toast, setToast] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [investorForm, setInvestorForm] = useState({
-    fullName,
-    phone: "",
-    city: "",
-    reason: "Saya ingin mulai berinvestasi di sektor maritim.",
-  });
+  const [investorFormOpen, setInvestorFormOpen] = useState(false);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
+  const [investorActionState, investorFormAction, isInvestorPending] = useActionState(
+    registerInvestorAction,
+    INITIAL_INVESTOR_ACTION_STATE,
+  );
+  const [revokeActionState, revokeFormAction, isRevoking] = useActionState(
+    revokeInvestorAction,
+    INITIAL_INVESTOR_ACTION_STATE,
+  );
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -398,18 +415,6 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
   const openProject = (project: FundingProject) => {
     setSelectedProject(project);
     setModal("project");
-  };
-
-  const handleInvestorSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!investorForm.fullName.trim() || !investorForm.phone.trim() || !investorForm.city.trim()) {
-      showToast("Lengkapi nama, nomor WhatsApp, dan domisili terlebih dahulu.");
-      return;
-    }
-
-    setInvestorRegistered(true);
-    setToast("Pendaftaran investor berhasil disimpan pada mode demo frontend.");
   };
 
   const renderCategoryStrip = () => (
@@ -525,75 +530,62 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
   );
 
   const renderInvestorRegistration = () => (
-    <section className={styles.investorPanel}>
-      <SectionHeading title="Daftar sebagai investor" />
-      <div className={styles.benefitList}>
-        <article className={styles.benefitCard}><Icon name="shield-check" size={18} /><span>Kurasi usaha maritim yang siap ditampilkan.</span></article>
-        <article className={styles.benefitCard}><Icon name="wallet" size={18} /><span>Peluang pendanaan akan tampil setelah registrasi berhasil.</span></article>
-        <article className={styles.benefitCard}><Icon name="info" size={18} /><span>Form ini masih mode demo dan belum terhubung ke validasi backend.</span></article>
+    <section className={styles.investorGate} aria-label="Pendaftaran Investor">
+      <div className={styles.investorGateBackdrop} aria-hidden="true">
+        {projects.map((project) => (
+          <FundingCard
+            key={project.id}
+            project={project}
+            onOpen={() => undefined}
+            disabled
+          />
+        ))}
       </div>
-      <form className={styles.demoForm} onSubmit={handleInvestorSubmit}>
-        <label>
-          Nama lengkap
-          <input
-            value={investorForm.fullName}
-            onChange={(event) => setInvestorForm((current) => ({ ...current, fullName: event.target.value }))}
-            placeholder="Nama lengkap"
-            required
-          />
-        </label>
-        <div className={styles.formColumns}>
-          <label>
-            Nomor WhatsApp
-            <input
-              value={investorForm.phone}
-              onChange={(event) => setInvestorForm((current) => ({ ...current, phone: event.target.value }))}
-              placeholder="08xxxxxxxxxx"
-              required
-            />
-          </label>
-          <label>
-            Domisili
-            <input
-              value={investorForm.city}
-              onChange={(event) => setInvestorForm((current) => ({ ...current, city: event.target.value }))}
-              placeholder="Kota / Kabupaten"
-              required
-            />
-          </label>
+      <div className={styles.investorGateOverlay}>
+        <div className={styles.investorGateCard}>
+          <span className={styles.investorGateIcon}>
+            <Icon name="shield-check" size={25} />
+          </span>
+          <button
+            className={styles.investorGateButton}
+            type="button"
+            onClick={() => setInvestorFormOpen(true)}
+          >
+            Daftar Investor Sekarang
+            <Icon name="arrow-right" size={16} />
+          </button>
         </div>
-        <label>
-          Alasan bergabung
-          <textarea
-            rows={4}
-            value={investorForm.reason}
-            onChange={(event) => setInvestorForm((current) => ({ ...current, reason: event.target.value }))}
-            placeholder="Tuliskan minat Anda sebagai investor..."
-          />
-        </label>
-        <button className={styles.primaryButton} type="submit">
-          Lanjutkan pendaftaran <Icon name="arrow-right" size={16} />
-        </button>
-      </form>
+      </div>
     </section>
   );
 
   const renderInvestorPage = () => (
     <>
       <section className={styles.pageHeading}>
-        <h1>{investorRegistered ? "Investasi Maritim" : "Gabung sebagai investor"}</h1>
-        {investorRegistered ? <p>Yuk, investasi berbasis syariah dengan Marivest !</p> : null}
+        <h1>Investasi Maritim</h1>
+        <p>Yuk, investasi berbasis syariah dengan Marivest !</p>
       </section>
 
       {investorRegistered ? (
-        <section className={styles.sectionBlock}>
-          <SectionHeading title="Usaha yang membutuhkan pendanaan" />
-          <div className={styles.fundingList}>
-            {projects.map((project) => (
-              <FundingCard key={project.id} project={project} onOpen={() => openProject(project)} />
-            ))}
+        <>
+          <section className={styles.sectionBlock}>
+            <SectionHeading title="Usaha yang membutuhkan pendanaan" />
+            <div className={styles.fundingList}>
+              {projects.map((project) => (
+                <FundingCard key={project.id} project={project} onOpen={() => openProject(project)} />
+              ))}
+            </div>
+          </section>
+          <div className={styles.investorRevokeRow}>
+            <button
+              className={styles.investorRevokeButton}
+              type="button"
+              onClick={() => setRevokeConfirmOpen(true)}
+            >
+              Cabut status Investor
+            </button>
           </div>
-        </section>
+        </>
       ) : (
         renderInvestorRegistration()
       )}
@@ -644,7 +636,7 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
         <div className={styles.profileIdentity}>
           <p className={styles.sectionEyebrow}>PROFIL PENGGUNA</p>
           <h1>{fullName}</h1>
-          <p>{isSeller ? "Pelaku Usaha Perikanan" : "Mitra / Investor"}</p>
+          <p>{profileRoleLabel}</p>
         </div>
       </section>
 
@@ -734,7 +726,7 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
         {activeTab !== "profile" ? (
         <div className={styles.bottomDock}>
           <nav className={styles.bottomNav} aria-label="Navigasi utama">
-            {navItems.map((item) => (
+            {navItems.filter((item) => role === "mitra" || item.id !== "investor").map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -769,6 +761,83 @@ export function MarivestHome({ fullName, role }: MarivestHomeProps) {
               <Icon name="close" size={14} />
             </button>
           </div>
+        ) : null}
+
+        {revokeConfirmOpen ? (
+          <Modal
+            title="Cabut status Investor?"
+            subtitle="Akses ke peluang pendanaan akan dinonaktifkan. Anda dapat mendaftar kembali nanti."
+            onClose={() => setRevokeConfirmOpen(false)}
+          >
+            {revokeActionState.status === "error" ? (
+              <p className={styles.investorActionError} role="alert">{revokeActionState.message}</p>
+            ) : null}
+            <form action={revokeFormAction} className={styles.revokeConfirmForm}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() => setRevokeConfirmOpen(false)}
+              >
+                Batal
+              </button>
+              <button className={styles.primaryButton} type="submit" disabled={isRevoking}>
+                {isRevoking ? "Memproses..." : "Ya, cabut akses"}
+              </button>
+            </form>
+          </Modal>
+        ) : null}
+
+        {investorFormOpen ? (
+          <Modal
+            title="Pendaftaran Investor"
+            subtitle="Lengkapi data berikut untuk mengaktifkan akses Investor MARIVEST."
+            onClose={() => setInvestorFormOpen(false)}
+          >
+            <form action={investorFormAction} className={styles.demoForm}>
+              <label>
+                Nomor WhatsApp
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  minLength={8}
+                  maxLength={24}
+                  placeholder="Contoh: 081234567890"
+                  autoComplete="tel"
+                  required
+                />
+              </label>
+              <label>
+                Domisili
+                <input
+                  name="city"
+                  type="text"
+                  minLength={2}
+                  maxLength={100}
+                  placeholder="Kota / Kabupaten"
+                  autoComplete="address-level2"
+                  required
+                />
+              </label>
+              <label>
+                Alasan bergabung (opsional)
+                <textarea
+                  name="reason"
+                  rows={3}
+                  maxLength={500}
+                  defaultValue="Saya ingin mulai berinvestasi di sektor maritim."
+                  placeholder="Tuliskan minat Anda sebagai investor..."
+                />
+              </label>
+              {investorActionState.status === "error" ? (
+                <p className={styles.investorActionError} role="alert">{investorActionState.message}</p>
+              ) : null}
+              <button className={styles.primaryButton} type="submit" disabled={isInvestorPending}>
+                {isInvestorPending ? "Menyimpan pendaftaran..." : "Daftar Investor Sekarang"}
+                <Icon name="arrow-right" size={16} />
+              </button>
+            </form>
+          </Modal>
         ) : null}
 
         {modal === "cart" ? (

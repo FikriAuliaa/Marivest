@@ -1921,3 +1921,185 @@
     0 9px 20px rgba(8, 21, 45, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
+
+
+/* Investor registration gate: blurred funding cards beneath a dynamic-glass layer. */
+.investorGate {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 28px;
+  background: rgba(229, 236, 245, 0.52);
+  box-shadow: 0 16px 34px rgba(8, 21, 45, 0.08);
+}
+
+.investorGateBackdrop {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 430px;
+  padding: 14px;
+  filter: blur(3.8px);
+  opacity: 0.78;
+  transform: scale(1.025);
+  pointer-events: none;
+  user-select: none;
+}
+
+.investorGateBackdrop .fundingCard {
+  flex: 0 0 auto;
+}
+
+.investorGateBackdrop .fundingCard:disabled {
+  cursor: default;
+}
+
+.investorGateOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(230, 237, 246, 0.24);
+  backdrop-filter: blur(5px) saturate(112%);
+  -webkit-backdrop-filter: blur(5px) saturate(112%);
+}
+
+.investorGateCard {
+  display: flex;
+  width: min(100%, 330px);
+  min-height: 178px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 26px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 28px;
+  background: rgba(249, 251, 254, 0.58);
+  box-shadow:
+    0 18px 40px rgba(8, 21, 45, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(25px) saturate(145%);
+  -webkit-backdrop-filter: blur(25px) saturate(145%);
+}
+
+.investorGateIcon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  color: #08152d;
+  border: 1px solid rgba(8, 21, 45, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 8px 20px rgba(8, 21, 45, 0.08);
+}
+
+.investorGateButton {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 17px;
+  color: #f7f8fa;
+  border: 1px solid rgba(8, 21, 45, 0.9);
+  border-radius: 999px;
+  background: #08152d;
+  box-shadow: 0 10px 22px rgba(8, 21, 45, 0.2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.investorGateButton:hover,
+.investorGateButton:focus-visible {
+  background: #142943;
+  box-shadow: 0 13px 26px rgba(8, 21, 45, 0.24);
+  transform: translateY(-2px);
+}
+
+.investorGateButton:focus-visible {
+  outline: 3px solid rgba(8, 21, 45, 0.2);
+  outline-offset: 3px;
+}
+
+.investorActionError {
+  margin: 0;
+  padding: 11px 13px;
+  color: #9e3445;
+  border: 1px solid rgba(158, 52, 69, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 239, 241, 0.92);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.primaryButton:disabled,
+.investorRevokeButton:disabled {
+  cursor: wait;
+  opacity: 0.66;
+}
+
+.investorRevokeRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  margin: 4px 2px 0;
+}
+
+.investorRevokeButton {
+  min-height: 38px;
+  padding: 0 13px;
+  color: #9e4655;
+  border: 1px solid rgba(158, 70, 85, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.investorRevokeButton:hover,
+.investorRevokeButton:focus-visible {
+  color: #ffffff;
+  border-color: #08152d;
+  background: #08152d;
+}
+
+@media (max-width: 380px) {
+  .investorGate,
+  .investorGateBackdrop {
+    min-height: 400px;
+  }
+
+  .investorGateOverlay {
+    padding: 14px;
+  }
+
+  .investorGateCard {
+    min-height: 160px;
+    padding: 22px 17px;
+  }
+}
+
+
+.revokeConfirmForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.revokeConfirmForm > button {
+  flex: 1 1 130px;
+}
