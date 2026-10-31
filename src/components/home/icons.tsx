@@ -58,24 +58,21 @@ export function Icon({
     ...props,
   };
 
-  if (name === "wheat") {
-    return (
-      <span
-        className="material-symbols-outlined"
-        style={{
-          fontSize: size,
-          fontFamily: '"Material Symbols Outlined"',
-          fontFeatureSettings: '"liga"',
-          fontVariationSettings: '"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24',
-        }}
-        aria-hidden="true"
-      >
-        wheat
-      </span>
-    );
-  }
-
   switch (name) {
+    case "wheat":
+      return (
+        <svg {...common}>
+          <path d="M7 21c2.1-4.2 5.1-9.5 10-15.5" />
+          <path d="M14 10c-2.8-.2-4.4-1.8-4.5-4.5 2.8.1 4.4 1.7 4.5 4.5Z" />
+          <path d="M11.5 13.8c-2.8-.1-4.5-1.6-4.6-4.3 2.8.1 4.5 1.6 4.6 4.3Z" />
+          <path d="M9 17.4c-2.8.1-4.6-1.3-4.9-3.9 2.8-.2 4.7 1.2 4.9 3.9Z" />
+          <path d="M14.1 9.9c2.7.2 4.5-1.2 4.9-3.8-2.8-.3-4.6 1.1-4.9 3.8Z" />
+          <path d="M11.7 13.5c2.7.5 4.7-.7 5.3-3.2-2.7-.6-4.7.6-5.3 3.2Z" />
+          <path d="M9.3 17.2c2.5.8 4.7-.1 5.7-2.5-2.6-1-4.8-.1-5.7 2.5Z" />
+          <path d="M4.5 21h5" />
+        </svg>
+      );
+
     case "fish":
       return (
         <svg {...common}>

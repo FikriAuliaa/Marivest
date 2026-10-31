@@ -23,6 +23,7 @@ type WelcomeTransitionContextValue = {
   isWelcomeActive: boolean;
   startWelcome: () => void;
   markTargetReady: () => void;
+  dismissWelcome: () => void;
 };
 
 const WelcomeTransitionContext =
@@ -64,6 +65,18 @@ export function WelcomeTransitionProvider({
     }, FADE_OUT_DURATION_MS);
   }, []);
 
+  const dismissWelcome = useCallback(() => {
+    if (fadeTimerRef.current !== null) {
+      window.clearTimeout(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+
+    hasWelcomeFlowRef.current = false;
+    setIsSplashVisible(false);
+    setIsFadingOut(false);
+    setIsWelcomeActive(false);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (fadeTimerRef.current !== null) {
@@ -78,6 +91,7 @@ export function WelcomeTransitionProvider({
     isWelcomeActive,
     startWelcome,
     markTargetReady,
+    dismissWelcome,
   };
 
   return (
@@ -105,13 +119,17 @@ function WelcomeSplashController() {
     isWelcomeActive,
     startWelcome,
     markTargetReady,
+    dismissWelcome,
   } = transition ?? {
     isSplashVisible: false,
     isFadingOut: false,
     isWelcomeActive: false,
     startWelcome: () => undefined,
     markTargetReady: () => undefined,
+    dismissWelcome: () => undefined,
   };
+
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
   useEffect(() => {
     if (pathname !== "/welcome") {
@@ -138,7 +156,7 @@ function WelcomeSplashController() {
       !isWelcomeActive ||
       pathname === "/welcome" ||
       pathname === "/dashboard" ||
-      pathname === "/admin"
+      isAdminRoute
     ) {
       return;
     }
@@ -147,9 +165,21 @@ function WelcomeSplashController() {
     // splash tetap ditutup agar tidak tertinggal di layar.
     const fallbackTimer = window.setTimeout(markTargetReady, 0);
     return () => window.clearTimeout(fallbackTimer);
-  }, [pathname, isWelcomeActive, markTargetReady]);
+  }, [pathname, isAdminRoute, isWelcomeActive, markTargetReady]);
 
-  const shouldShowSplash = pathname === "/welcome" || isSplashVisible;
+
+  // Admin tidak pernah menampilkan splash. Bersihkan juga state transisi lama
+  // agar overlay tidak muncul lagi saat berpindah halaman.
+  useEffect(() => {
+    if (!isAdminRoute) {
+      return;
+    }
+
+    const dismissTimer = window.setTimeout(dismissWelcome, 0);
+    return () => window.clearTimeout(dismissTimer);
+  }, [isAdminRoute, dismissWelcome]);
+
+  const shouldShowSplash = !isAdminRoute && (pathname === "/welcome" || isSplashVisible);
 
   if (!shouldShowSplash) {
     return null;
