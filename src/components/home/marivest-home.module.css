@@ -2135,3 +2135,12 @@
 .notificationCard > span:last-child strong { display: block; }
 .notificationCard > span:last-child p { margin: 5px 0; }
 .emptyState { margin: 10px 0; }
+
+/* Detail investasi: Target dan Komitmen kembali memakai navy MARIVEST. */
+.projectDetailStats > div {
+  background: #08152d;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(8,21,45,.13);
+}
+.projectDetailStats small { color: #c1ccda; }
+.projectDetailStats strong { color: #fff; overflow-wrap: anywhere; }

@@ -79,6 +79,7 @@ export type CheckoutView = {
 export type SellerProductView = ProductView & { revenue: number; isPublished: boolean };
 export type SellerFundingView = {
   id: string;
+  image: string | null;
   title: string;
   target: number;
   raised: number;

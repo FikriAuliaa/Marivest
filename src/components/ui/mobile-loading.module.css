@@ -1,0 +1,9 @@
+.page{min-height:100svh;background:#eaf0f6;color:#08152d;font-family:var(--font-poppins),Arial,sans-serif}
+.device{position:relative;width:100%;max-width:480px;min-height:100svh;margin:0 auto;display:grid;place-items:center;padding:80px 20px;background:linear-gradient(180deg,#f7f9fc,#eef2f7);box-shadow:0 16px 44px rgba(8,21,45,.1)}
+.brand{position:absolute;top:33px;left:24px;font-weight:800;letter-spacing:.22em;font-size:13px}
+.card{width:min(100%,330px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px 22px;background:rgba(255,255,255,.85);border:1px solid #fff;border-radius:24px;box-shadow:0 15px 38px rgba(8,21,45,.08);backdrop-filter:blur(14px);text-align:center}
+.card strong{font-size:16px;font-weight:750;line-height:1.45}
+.card p{font-size:12px;line-height:1.6;color:#6c8097;margin:0}
+.spinner{display:block;width:42px;height:42px;border:3px solid #dae5f0;border-top-color:#08152d;border-radius:50%;animation:spin .85s linear infinite;margin-bottom:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none;border-top-color:#436084}}
