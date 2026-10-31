@@ -60,7 +60,7 @@ export function AuthScreen() {
           className="relative flex min-h-screen flex-col justify-between overflow-hidden px-5 pb-8 pt-6"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(5,16,31,0.56), rgba(6,11,24,0.85)), url('/images/nile-river.jfif')",
+              "linear-gradient(180deg, rgba(5,16,31,0.56), rgba(6,11,24,0.85)), url('/images/nile-river.jpg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

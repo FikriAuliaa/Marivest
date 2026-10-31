@@ -1,6 +1,6 @@
 import type { CartView, CommitmentView, FundingView, NotificationView, OrderView, ProductView } from "./types";
 
-const fallback = "/images/pon.jfif";
+const fallback = "/images/pon.jpg";
 
 function imageOrFallback(value: string | null | undefined): string {
   if (typeof value !== "string") return fallback;
