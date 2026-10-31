@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "docker:dev": "docker compose up --build --watch",
     "smoke": "bash scripts/smoke.sh"
   },
