@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { signOutAction } from "@/app/actions/auth";
 import { registerInvestorAction, revokeInvestorAction } from "@/app/actions/investor";
 import {
-  setCartQuantityAction, commitFundingAction,
+  setCartQuantityAction,
   markNotificationReadAction, changeProfileNameAction, changePasswordAction,
 } from "@/app/actions/buyer";
 import type { AppRole } from "@/lib/auth/types";
 import type { InvestorActionState, InvestorStatus } from "@/lib/investor/types";
 import type { ProductView, CartView, OrderView, FundingView, CommitmentView, NotificationView, ActionResult } from "@/lib/domain/types";
-import { fundingPercent, remainingTarget, validateCommitment } from "@/lib/domain/funding";
+import { fundingPercent } from "@/lib/domain/funding";
 import { orderTotal } from "@/lib/domain/orders";
 import { Icon, type IconName } from "./icons";
 import styles from "./marivest-home.module.css";
@@ -156,8 +156,6 @@ export function MarivestHome({
   const [product, setProduct] = useState<ProductView | null>(null);
   const [project, setProject] = useState<FundingView | null>(null);
   const [qty, setQty] = useState(1);
-  const [fundingAmount, setFundingAmount] = useState("");
-  const [fundingKey, setFundingKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [profileMenu, setProfileMenu] = useState(false);
@@ -200,7 +198,7 @@ export function MarivestHome({
   }
   const openProduct = (item: ProductView) => { setProduct(item); setQty(1); setModal("product"); };
   const openProject = (item: FundingView) => {
-    setProject(item); setFundingAmount(""); setFundingKey(null); setModal("project");
+    setProject(item); setModal("project");
   };
   const showProducts = (items: ProductView[]) => items.length ? (
     <div className={styles.productGrid}>{items.map((item) => (
@@ -246,12 +244,12 @@ export function MarivestHome({
     {isInvestor ? <>
       <section className={styles.sectionBlock}><Heading>Usaha yang membutuhkan pendanaan</Heading>
         {projects.length ? <div className={styles.fundingList}>{projects.map((item) => <FundingCard key={item.id} project={item} onOpen={() => openProject(item)} />)}</div>
-          : <div className={styles.emptyState}><Icon name="wallet" size={25} /><strong>Belum ada pengajuan terbuka</strong><p>Proyek yang disetujui akan tampil di sini.</p></div>}
+          : <div className={styles.emptyState}><Icon name="wallet" size={25} /><strong>Belum ada proyek terverifikasi</strong><p>Proyek yang disetujui akan tampil di sini.</p></div>}
       </section>
       <section className={styles.sectionBlock}><Heading>Komitmen Saya</Heading>
         {commitments.length ? <div className={styles.notificationList}>{commitments.map((item) => (
           <article className={styles.notificationCard} key={item.id}><span className={styles.notificationIcon}><Icon name="wallet" size={18}/></span>
-            <div><strong>{rupiah(item.amount)}</strong><p>Komitmen pendanaan tercatat</p><small>{new Date(item.createdAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small></div>
+            <div><strong>{rupiah(item.amount)}</strong><p>Komitmen pendanaan simulasi</p><small>{new Date(item.createdAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small><p><a href={`/investor/projects/${item.projectId}`}>Lihat laporan proyek →</a></p></div>
           </article>
         ))}</div> : <div className={styles.emptyState}><strong>Belum ada komitmen</strong></div>}
       </section>
@@ -399,13 +397,8 @@ export function MarivestHome({
       <div className={styles.projectDetailStats}><div><small>Target</small><strong>{rupiah(project.target)}</strong></div><div><small>Komitmen</small><strong>{rupiah(project.raised)}</strong></div></div>
       <div className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${fundingPercent(project.raised, project.target)}%` }}/></div>
       <p className={styles.privacyNote}>Porsi bagi hasil investor {Math.round(project.investorShareRatio * 100)}% dari laba yang benar-benar tercapai. Bukan janji keuntungan.</p>
-      <label className={styles.actionField}>Nominal komitmen (Rp)<input type="number" min="1" step="1" inputMode="numeric" value={fundingAmount} onChange={(e) => { setFundingAmount(e.target.value); setFundingKey(null); }} placeholder="Masukkan nominal" /></label>
-      <p className={styles.privacyNote}>Sisa target: {rupiah(remainingTarget(project.raised, project.target))}</p>
-      <button type="button" className={styles.primaryButton} disabled={busy || !validateCommitment(Number(fundingAmount), remainingTarget(project.raised, project.target))} onClick={() => {
-        const key = fundingKey ?? crypto.randomUUID();
-        setFundingKey(key);
-        perform(() => commitFundingAction(project.id, Number(fundingAmount), key), () => { setFundingKey(null); setModal(null); });
-      }}>{busy ? "Menyimpan..." : "Catat Komitmen"}</button>
+      <a className={styles.primaryButton} style={{display:"flex",justifyContent:"center",textDecoration:"none",alignItems:"center"}} href={`/investor/projects/${project.id}`}>Detail lengkap, risiko & laporan →</a>
+      <p className={styles.privacyNote}>Baca rincian risiko, periode usaha, dan laporan sebelum mencatat komitmen melalui halaman proyek.</p>
     </Modal> : null}
     {modal === "editProfile" ? <Modal title="Ubah Data Profil" onClose={() => setModal(null)}>
       <div className={styles.demoForm}><label>Nama lengkap<input value={newName} maxLength={100} onChange={(e) => setNewName(e.target.value)}/></label>

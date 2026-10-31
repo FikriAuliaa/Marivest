@@ -29,6 +29,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       businesses={seller.businesses}
       products={seller.products}
       projects={seller.projects}
+      storeHistory={seller.storeHistory}
       orders={seller.orders}
       notifications={seller.notifications}
       initialTab={initialTab}

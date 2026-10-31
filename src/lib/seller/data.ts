@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { productFromRow, type ProductRow } from "@/lib/domain/queries";
 import type { SellerFundingView, SellerOrderView, SellerProductView, NotificationView } from "@/lib/domain/types";
+import { mergeStoreHistories, storeRevenueFromRow, type StoreRevenueRow } from "@/lib/domain/store-revenue";
 
 type BusinessRow = { id: string; name: string; verification_status: string };
 type OrderRow = {
@@ -11,7 +12,7 @@ type OrderRow = {
   recipient_name: string; shipping_phone: string;
   shipping_address: string; payment_method: string;
 };
-type FundingRow = { id: string; title: string; target_amount: number;
+type FundingRow = { id: string; title: string; image_url: string | null; target_amount: number;
   verification_status: string; funding_status: string };
 
 export async function loadSellerData(userId: string) {
@@ -26,11 +27,18 @@ export async function loadSellerData(userId: string) {
     businessIds.length ? supabase.from("products").select("id,name,category,description,price,unit,stock,image_url,is_published,business_profiles(name,city)")
       .in("business_id",businessIds).order("created_at",{ascending:false}) : Promise.resolve({data:[],error:null}),
     businessIds.length ? supabase.from("funding_projects")
-      .select("id,title,target_amount,verification_status,funding_status")
+      .select("id,title,image_url,target_amount,verification_status,funding_status")
       .in("business_id",businessIds).order("created_at",{ascending:false}) : Promise.resolve({data:[],error:null}),
     supabase.from("notifications").select("id,title,body,is_read,created_at")
       .eq("user_id",userId).order("created_at",{ascending:false}).limit(30),
   ]);
+
+  const historyResults = await Promise.all(businessIds.map((id) =>
+    supabase.rpc("business_marketplace_history", { p_business_id: id })
+  ));
+  const storeHistory = mergeStoreHistories(historyResults.map((result) =>
+    ((result.data ?? []) as StoreRevenueRow[]).map(storeRevenueFromRow)
+  ));
 
   const productRows = (productResult.data ?? []) as unknown as (ProductRow & {is_published:boolean})[];
   const productIds = productRows.map((r) => r.id);
@@ -56,7 +64,7 @@ export async function loadSellerData(userId: string) {
     totalFunded.set(c.project_id,(totalFunded.get(c.project_id) ?? 0)+Number(c.amount));
   }
   const projects: SellerFundingView[] = projectRows.map((p) => ({
-    id:p.id,title:p.title,target:Number(p.target_amount),raised:totalFunded.get(p.id) ?? 0,
+    id:p.id,title:p.title,image:p.image_url,target:Number(p.target_amount),raised:totalFunded.get(p.id) ?? 0,
     verificationStatus:p.verification_status,fundingStatus:p.funding_status,
   })).sort((a,b)=>b.raised-a.raised);
   const orders: SellerOrderView[] = orderRows.map((row)=>({
@@ -71,7 +79,7 @@ export async function loadSellerData(userId: string) {
   const notifications: NotificationView[] = (notificationsResult.data ?? []).map((n)=>({
     id:n.id,title:n.title,body:n.body,isRead:n.is_read,createdAt:n.created_at,
   }));
-  const errors = [productResult.error,fundingResult.error,notificationsResult.error,ordersResult.error,commitmentResult.error,revenueResult.error]
+  const errors = [productResult.error,fundingResult.error,notificationsResult.error,ordersResult.error,commitmentResult.error,revenueResult.error,...historyResults.map((r)=>r.error)]
     .filter(Boolean).map((err)=>err?.message);
-  return { businesses,products,projects,orders,notifications,errors };
+  return { businesses,products,projects,orders,notifications,storeHistory,errors };
 }

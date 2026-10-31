@@ -22,3 +22,19 @@
 .photoPreview{position:relative;width:100%;height:180px;border-radius:16px;overflow:hidden;background:#e8edf4;border:1px solid #e0e6ee}
 .photoPreview img{object-fit:contain}
 .photoHint{font-size:11px;line-height:1.6;color:#748398;margin:0}
+
+/* Kartu proyek: status, progress, dan tombol memiliki baris masing-masing. */
+.fundingPanel{display:flex;flex-direction:column;gap:12px;min-width:0;overflow:hidden}
+.fundingTop{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.fundingTop strong{flex:1 1 190px;min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.5}
+.fundingTop .pill{flex:0 0 auto;max-width:100%;white-space:normal;text-align:center}
+.fundingPanel .metricValue{margin:0}
+.fundingPanel .track{width:100%;margin:0}
+.fundingFooter{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0}
+.fundingFooter small{font-size:11px;line-height:1.6;color:#728198;overflow-wrap:anywhere}
+.fundingAction{display:flex;align-items:center;justify-content:center;min-height:45px;padding:11px 15px;border-radius:999px;background:#08152d;color:white;text-align:center;text-decoration:none;font-size:12px;font-weight:750;line-height:1.45;overflow-wrap:anywhere}
+.fundingAction:hover{background:#172a49}
+.fundingAction:focus-visible{outline:3px solid #7093be;outline-offset:3px}
+.fundingThumbnail{position:relative;height:146px;overflow:hidden;border-radius:15px;background:#edf1f6}
+.fundingThumbnail img{object-fit:cover}
+@media(max-width:370px){.fundingTop{flex-direction:column}.fundingTop strong{flex:auto}}

@@ -1,12 +1,13 @@
 import type { CartView, CommitmentView, FundingView, NotificationView, OrderView, ProductView } from "./types";
 
-const fallback = "/images/pon.jfif";
+const fallback = "/images/pon.jpg";
 
 function imageOrFallback(value: string | null | undefined): string {
   if (typeof value !== "string") return fallback;
-  if (value.startsWith("/images/")) return value;
-  // Only HTTPS URLs may be stored for public product imagery.
-  if (value.startsWith("https://")) return value;
+  // Normalisasi referensi lokal lama. Format .jfif tidak lagi digunakan dalam aplikasi.
+  if (value.startsWith("/images/")) return value.replace(/\.jfif(?=\?|$)/i, ".jpg");
+  // URL .jfif eksternal tidak dapat dijamin kompatibel; gunakan gambar lokal pengganti.
+  if (value.startsWith("https://") && !/\.jfif(?:\?|$)/i.test(value)) return value;
   return fallback;
 }
 
