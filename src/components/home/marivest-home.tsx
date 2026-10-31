@@ -2,229 +2,79 @@
 
 import Image from "next/image";
 import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { signOutAction } from "@/app/actions/auth";
 import { registerInvestorAction, revokeInvestorAction } from "@/app/actions/investor";
+import {
+  setCartQuantityAction, checkoutCartAction, commitFundingAction,
+  markNotificationReadAction, changeProfileNameAction, changePasswordAction,
+} from "@/app/actions/buyer";
 import type { AppRole } from "@/lib/auth/types";
 import type { InvestorActionState, InvestorStatus } from "@/lib/investor/types";
+import type { ProductView, CartView, OrderView, FundingView, CommitmentView, NotificationView, ActionResult } from "@/lib/domain/types";
+import { fundingPercent, remainingTarget, validateCommitment } from "@/lib/domain/funding";
+import { orderTotal } from "@/lib/domain/orders";
 import { Icon, type IconName } from "./icons";
 import styles from "./marivest-home.module.css";
 
 type UserRole = Exclude<AppRole, "superadmin">;
-type TabKey = "home" | "marketplace" | "investor" | "notifications" | "profile";
-type ModalKey = "cart" | "product" | "project" | null;
+type Tab = "home" | "marketplace" | "investor" | "notifications" | "profile";
+type ModalName = "cart" | "orders" | "product" | "project" | "editProfile" | "password" | null;
 
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  unit: string;
-  image: string;
-  seller: string;
-  location: string;
-  stock: number;
-  description: string;
-};
-
-type FundingProject = {
-  id: string;
-  title: string;
-  business: string;
-  category: string;
-  target: number;
-  raised: number;
-  location: string;
-  image: string;
-  status: string;
-  description: string;
-};
-
-type MarivestHomeProps = {
+type Props = {
   fullName: string;
+  email: string;
   role: UserRole;
   investorStatus: InvestorStatus;
+  products: ProductView[];
+  cart: CartView[];
+  orders: OrderView[];
+  projects: FundingView[];
+  commitments: CommitmentView[];
+  notifications: NotificationView[];
+  initialTab: Tab;
+  dataError: string | null;
 };
 
-const INITIAL_INVESTOR_ACTION_STATE: InvestorActionState = {
-  status: "idle",
-  message: "",
-};
+const initialInvestorState: InvestorActionState = { status: "idle", message: "" };
 
-const featuredProducts: Product[] = [
-  {
-    id: "bandeng",
-    name: "Ikan Bandeng Segar",
-    category: "Ikan Segar",
-    price: 32000,
-    unit: "kg",
-    image: "/images/nelayan.jfif",
-    seller: "Tambak Mina Sejahtera",
-    location: "Sidoarjo, Jawa Timur",
-    stock: 120,
-    description:
-      "Bandeng hasil budidaya tambak dengan penanganan pascapanen yang terjaga. Data ini masih berupa dummy untuk kebutuhan tampilan frontend.",
-  },
-  {
-    id: "udang",
-    name: "Udang Vaname Premium",
-    category: "Udang",
-    price: 68000,
-    unit: "kg",
-    image: "/images/tambak.jfif",
-    seller: "Mina Bahari Farm",
-    location: "Gresik, Jawa Timur",
-    stock: 85,
-    description:
-      "Udang vaname budidaya untuk kebutuhan rumah tangga dan kuliner. Volume, ukuran, dan harga masih berupa data demonstrasi.",
-  },
-  {
-    id: "nila",
-    name: "Ikan Nila Budidaya",
-    category: "Budidaya",
-    price: 29000,
-    unit: "kg",
-    image: "/images/pon.jfif",
-    seller: "Pokdakan Tirta Mina",
-    location: "Pasuruan, Jawa Timur",
-    stock: 95,
-    description:
-      "Ikan nila hasil budidaya kolam air tawar yang ditampilkan sebagai produk unggulan marketplace MARIVEST.",
-  },
-  {
-    id: "rumput-laut",
-    name: "Rumput Laut Kering",
-    category: "Rumput Laut",
-    price: 25000,
-    unit: "kg",
-    image: "/images/nile-river.jfif",
-    seller: "Koperasi Pesisir Makmur",
-    location: "Situbondo, Jawa Timur",
-    stock: 200,
-    description:
-      "Rumput laut kering untuk kebutuhan pengolahan. Detail kualitas dan volume dalam prototipe ini bersifat ilustratif.",
-  },
-  {
-    id: "kepiting",
-    name: "Kepiting Bakau",
-    category: "Hasil Laut",
-    price: 92000,
-    unit: "kg",
-    image: "/images/fish-cleaning.jfif",
-    seller: "Bahari Pesisir Nusantara",
-    location: "Probolinggo, Jawa Timur",
-    stock: 40,
-    description:
-      "Kepiting bakau hasil tangkapan nelayan yang dikurasi untuk kebutuhan visual homepage marketplace MARIVEST.",
-  },
-  {
-    id: "kerapu",
-    name: "Ikan Kerapu",
-    category: "Ikan Segar",
-    price: 88000,
-    unit: "kg",
-    image: "/images/fisher.jfif",
-    seller: "Nelayan Bahari",
-    location: "Banyuwangi, Jawa Timur",
-    stock: 62,
-    description:
-      "Kerapu segar dengan kualitas premium. Data masih dummy dan belum terhubung ke transaksi nyata.",
-  },
-];
-
-const fundingProjects: FundingProject[] = [
-  {
-    id: "funding-1",
-    title: "Ekspansi Tambak Bandeng Syariah",
-    business: "Tambak Mina Sejahtera",
-    category: "Budidaya tambak",
-    target: 25000000,
-    raised: 16500000,
-    location: "Sidoarjo, Jawa Timur",
-    image: "/images/pon.jfif",
-    status: "Sedang dibuka untuk komitmen pendanaan",
-    description:
-      "Pendanaan digunakan untuk penambahan benih, pakan, serta optimalisasi kolam produksi bandeng.",
-  },
-  {
-    id: "funding-2",
-    title: "Cold Storage Hasil Laut",
-    business: "Koperasi Pesisir Makmur",
-    category: "Rantai pasok",
-    target: 40000000,
-    raised: 24800000,
-    location: "Lamongan, Jawa Timur",
-    image: "/images/nelayan.jfif",
-    status: "Terverifikasi internal · Demo",
-    description:
-      "Proyek penguatan rantai dingin agar kualitas hasil laut tetap terjaga sebelum dipasarkan.",
-  },
-  {
-    id: "funding-3",
-    title: "Pusat Pakan Mandiri Nelayan",
-    business: "Komunitas Tambak Pesisir",
-    category: "Penguatan komunitas",
-    target: 18000000,
-    raised: 9400000,
-    location: "Gresik, Jawa Timur",
-    image: "/images/tambak.jfif",
-    status: "Menunggu putaran komitmen berikutnya",
-    description:
-      "Pengadaan fasilitas pengolahan pakan mandiri untuk menekan biaya operasional pelaku usaha perikanan.",
-  },
-];
-
-const categories: { id: string; label: string; icon: IconName }[] = [
-  { id: "Semua", label: "Semua", icon: "grid" },
-  { id: "Ikan Segar", label: "Ikan Segar", icon: "fish" },
-  { id: "Udang", label: "Udang", icon: "waves" },
-  { id: "Budidaya", label: "Budidaya", icon: "leaf" },
-  { id: "Rumput Laut", label: "Rumput Laut", icon: "sparkles" },
-  { id: "Hasil Laut", label: "Hasil Laut", icon: "shopping-bag" },
-];
-
-const navItems: { id: TabKey; label: string; icon: IconName }[] = [
-  { id: "home", label: "Home", icon: "home" },
+const nav: { id: Tab; label: string; icon: IconName }[] = [
+  { id: "home", label: "Beranda", icon: "home" },
   { id: "marketplace", label: "Marketplace", icon: "shopping-bag" },
-  { id: "investor", label: "Investor", icon: "wallet" },
+  { id: "investor", label: "Investasi", icon: "wallet" },
   { id: "notifications", label: "Notifikasi", icon: "bell" },
 ];
+const categories: { label: string; icon: IconName }[] = [
+  { label: "Semua", icon: "grid" },
+  { label: "Ikan Segar", icon: "fish" },
+  { label: "Udang", icon: "waves" },
+  { label: "Budidaya", icon: "leaf" },
+  { label: "Rumput Laut", icon: "sparkles" },
+  { label: "Hasil Laut", icon: "shopping-bag" },
+];
+const interests = [
+  ["budidaya", "Budidaya"], ["nelayan", "Nelayan"], ["tambak", "Tambak"],
+  ["rantai_pasok", "Rantai pasok"], ["rumput_laut", "Rumput laut"], ["umkm", "UMKM"],
+] as const;
+const statusLabels: Record<OrderView["status"], string> = {
+  pending: "Menunggu konfirmasi", confirmed: "Dikonfirmasi",
+  completed: "Selesai", cancelled: "Dibatalkan",
+};
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+function rupiah(value: number) {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
+}
+function compactRupiah(value: number) {
+  return value >= 1_000_000 ? `Rp${(value / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt` : rupiah(value);
 }
 
-function formatCompactCurrency(value: number) {
-  if (value >= 1000000) {
-    return `Rp${(value / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt`;
-  }
-
-  return formatCurrency(value);
-}
-
-function Modal({
-  title,
-  subtitle,
-  onClose,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
+function Modal({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className={styles.modalBackdrop} role="presentation">
       <section className={styles.modalSheet} role="dialog" aria-modal="true" aria-label={title}>
         <div className={styles.modalHandle} />
         <header className={styles.modalHeader}>
-          <div>
-            <h2>{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
-          </div>
+          <div><h2>{title}</h2>{subtitle ? <p>{subtitle}</p> : null}</div>
           <button className={styles.iconButton} type="button" onClick={onClose} aria-label="Tutup">
             <Icon name="close" size={18} />
           </button>
@@ -235,30 +85,14 @@ function Modal({
   );
 }
 
-function ProductCard({
-  product,
-  role,
-  onOpen,
-  onPrimary,
-}: {
-  product: Product;
-  role: UserRole;
-  onOpen: () => void;
-  onPrimary: () => void;
+function ProductCard({ product, onOpen, onAdd, isSeller }: {
+  product: ProductView; onOpen: () => void; onAdd: () => void; isSeller: boolean;
 }) {
-  const isSeller = role === "pelaku_usaha";
-
   return (
     <article className={styles.productCard}>
       <button className={styles.productVisualButton} type="button" onClick={onOpen}>
         <div className={styles.productImageWrap}>
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="(max-width: 480px) 44vw, 200px"
-            className={styles.productImage}
-          />
+          <Image src={product.image} alt={product.name} fill unoptimized sizes="(max-width: 480px) 44vw, 200px" className={styles.productImage} />
           <span className={styles.productCategory}>{product.category}</span>
         </div>
       </button>
@@ -267,19 +101,13 @@ function ProductCard({
           <span className={styles.productName}>{product.name}</span>
         </button>
         <span className={styles.productSeller}>{product.seller}</span>
-        <div className={styles.productLocation}>
-          <Icon name="map-pin" size={12} />
-          <span>{product.location}</span>
-        </div>
-        <div className={styles.productPriceRow}>
-          <strong>{formatCurrency(product.price)}</strong>
-          <span>/{product.unit}</span>
-        </div>
+        <div className={styles.productLocation}><Icon name="map-pin" size={12} /><span>{product.location}</span></div>
+        <div className={styles.productPriceRow}><strong>{rupiah(product.price)}</strong><span>/{product.unit}</span></div>
         <div className={styles.productBottomRow}>
-          <span className={styles.stockLabel}>Stok {product.stock} kg</span>
-          <button className={styles.productAction} type="button" onClick={onPrimary}>
-            {isSeller ? "Kelola" : "Tambah"}
-            <Icon name={isSeller ? "chevron-right" : "plus"} size={14} />
+          <span className={styles.stockLabel}>Stok {product.stock} {product.unit}</span>
+          <button className={styles.productAction} type="button" onClick={isSeller ? onOpen : onAdd} disabled={product.stock === 0}>
+            {isSeller ? "Lihat" : product.stock === 0 ? "Habis" : "Tambah"}
+            <Icon name="plus" size={14} />
           </button>
         </div>
       </div>
@@ -287,648 +115,298 @@ function ProductCard({
   );
 }
 
-function FundingCard({ project, onOpen, disabled = false }: { project: FundingProject; onOpen: () => void; disabled?: boolean }) {
-  const progress = Math.min(100, Math.round((project.raised / project.target) * 100));
-
+function FundingCard({ project, onOpen }: { project: FundingView; onOpen: () => void }) {
+  const percent = Math.round(fundingPercent(project.raised, project.target));
   return (
-    <button className={styles.fundingCard} type="button" onClick={onOpen} disabled={disabled} tabIndex={disabled ? -1 : undefined}>
+    <button className={styles.fundingCard} type="button" onClick={onOpen}>
       <span className={styles.fundingImageWrap}>
-        <Image src={project.image} alt={project.title} fill sizes="120px" className={styles.fundingImage} />
+        <Image src={project.image} alt={project.title} fill unoptimized sizes="120px" className={styles.fundingImage} />
       </span>
       <span className={styles.fundingContent}>
-        <span className={styles.fundingTag}>{project.category} · SIMULASI</span>
+        <span className={styles.fundingTag}>{project.category}</span>
         <strong className={styles.fundingTitle}>{project.title}</strong>
         <span className={styles.fundingBusiness}>{project.business}</span>
         <span className={styles.fundingLocation}><Icon name="map-pin" size={12} /> {project.location}</span>
-        <span className={styles.fundingNumbers}>
-          <b>{formatCompactCurrency(project.raised)}</b>
-          <span>dari {formatCompactCurrency(project.target)}</span>
-        </span>
-        <span className={styles.progressTrack}>
-          <span className={styles.progressFill} style={{ width: `${progress}%` }} />
-        </span>
-        <span className={styles.fundingFooter}>
-          <span>{progress}% tercapai</span>
-          <span className={styles.fundingLink}>Detail <Icon name="arrow-up-right" size={12} /></span>
-        </span>
+        <span className={styles.fundingNumbers}><b>{compactRupiah(project.raised)}</b><span>dari {compactRupiah(project.target)}</span></span>
+        <span className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${percent}%` }} /></span>
+        <span className={styles.fundingFooter}><span>{percent}% tercapai</span><span className={styles.fundingLink}>Detail <Icon name="arrow-up-right" size={12} /></span></span>
       </span>
     </button>
   );
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-  action,
-  onAction,
-}: {
-  eyebrow?: string;
-  title: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <div className={styles.sectionHeading}>
-      <div>
-        {eyebrow ? <p className={styles.sectionEyebrow}>{eyebrow}</p> : null}
-        <h2>{title}</h2>
-      </div>
-      {action && onAction ? (
-        <button className={styles.textAction} type="button" onClick={onAction}>
-          {action} <Icon name="chevron-right" size={14} />
-        </button>
-      ) : null}
-    </div>
-  );
+function Heading({ children, onMore }: { children: ReactNode; onMore?: () => void }) {
+  return <div className={styles.sectionHeading}><h2>{children}</h2>{onMore ? <button type="button" className={styles.textAction} onClick={onMore}>Lihat semua <Icon name="chevron-right" size={14} /></button> : null}</div>;
 }
 
-export function MarivestHome({ fullName, role, investorStatus }: MarivestHomeProps) {
+export function MarivestHome({
+  fullName, email, role, investorStatus, products, cart, orders, projects, commitments, notifications, initialTab, dataError,
+}: Props) {
+  const router = useRouter();
   const isSeller = role === "pelaku_usaha";
-  const investorRegistered = role === "mitra" && investorStatus === "active";
-  const profileRoleLabel = isSeller
-    ? "Pelaku Usaha Perikanan"
-    : investorRegistered
-      ? "Investor"
-      : "Mitra / Investor (Perlu Pendaftaran)";
+  const isInvestor = role === "mitra" && investorStatus === "active";
+  const displayRole = isSeller ? "Pelaku Usaha Perikanan" : isInvestor ? "Investor" : "Mitra / Investor (Perlu Pendaftaran)";
   const firstName = fullName.trim().split(/\s+/)[0] || "Sahabat";
-  const initials =
-    fullName
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join("") || "M";
+  const initials = fullName.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("") || "M";
 
-  const [activeTab, setActiveTab] = useState<TabKey>("home");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [products] = useState<Product[]>(featuredProducts);
-  const [projects] = useState<FundingProject[]>(fundingProjects);
-  const [cartIds, setCartIds] = useState<string[]>(["bandeng", "udang"]);
-  const [modal, setModal] = useState<ModalKey>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedProject, setSelectedProject] = useState<FundingProject | null>(null);
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [category, setCategory] = useState("Semua");
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState<ModalName>(null);
+  const [product, setProduct] = useState<ProductView | null>(null);
+  const [project, setProject] = useState<FundingView | null>(null);
+  const [qty, setQty] = useState(1);
+  const [fundingAmount, setFundingAmount] = useState("");
+  const [fundingKey, setFundingKey] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [investorFormOpen, setInvestorFormOpen] = useState(false);
-  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
-  const [investorActionState, investorFormAction, isInvestorPending] = useActionState(
-    registerInvestorAction,
-    INITIAL_INVESTOR_ACTION_STATE,
-  );
-  const [revokeActionState, revokeFormAction, isRevoking] = useActionState(
-    revokeInvestorAction,
-    INITIAL_INVESTOR_ACTION_STATE,
-  );
+  const [profileMenu, setProfileMenu] = useState(false);
+  const [showInvestorForm, setShowInvestorForm] = useState(false);
+  const [investorType, setInvestorType] = useState("individual");
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [registerState, registerAction, registering] = useActionState(registerInvestorAction, initialInvestorState);
+  const [revokeState, revokeAction, revoking] = useActionState(revokeInvestorAction, initialInvestorState);
+  const [newName, setNewName] = useState(fullName);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const filteredProducts = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+  const visibleProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return products.filter((item) => (category === "Semua" || item.category === category)
+      && (!query || `${item.name} ${item.seller} ${item.category} ${item.location}`.toLowerCase().includes(query)));
+  }, [products, category, search]);
+  const subtotal = cart.reduce((total, entry) => total + orderTotal(entry.product.price, entry.quantity), 0);
 
-    return products.filter((product) => {
-      const matchesCategory = selectedCategory === "Semua" || product.category === selectedCategory;
-      const matchesQuery =
-        !query ||
-        `${product.name} ${product.category} ${product.seller} ${product.location}`.toLowerCase().includes(query);
-
-      return matchesCategory && matchesQuery;
-    });
-  }, [products, searchTerm, selectedCategory]);
-
-  const featuredList = filteredProducts.slice(0, 4);
-  const cartProducts = cartIds
-    .map((id) => products.find((product) => product.id === id))
-    .filter((product): product is Product => Boolean(product));
-  const cartTotal = cartProducts.reduce((total, product) => total + product.price, 0);
-
-  const showToast = (message: string) => setToast(message);
-
-  const openProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setModal("product");
+  async function perform(operation: () => Promise<ActionResult>, onSuccess?: () => void) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await operation();
+      setToast(result.message);
+      if (result.status === "success") {
+        onSuccess?.();
+        router.refresh();
+      }
+    } catch {
+      setToast("Layanan belum dapat dihubungi. Silakan coba kembali.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  const openProduct = (item: ProductView) => { setProduct(item); setQty(1); setModal("product"); };
+  const openProject = (item: FundingView) => {
+    setProject(item); setFundingAmount(""); setFundingKey(null); setModal("project");
   };
-
-  const addToCart = (product: Product) => {
-    setCartIds((current) => [...current, product.id]);
-    showToast(`${product.name} ditambahkan ke keranjang demo.`);
-  };
-
-  const openProject = (project: FundingProject) => {
-    setSelectedProject(project);
-    setModal("project");
-  };
-
-  const renderCategoryStrip = () => (
+  const showProducts = (items: ProductView[]) => items.length ? (
+    <div className={styles.productGrid}>{items.map((item) => (
+      <ProductCard key={item.id} product={item} isSeller={isSeller}
+        onOpen={() => openProduct(item)}
+        onAdd={() => perform(() => setCartQuantityAction(item.id, (cart.find((c) => c.productId === item.id)?.quantity ?? 0) + 1))} />
+    ))}</div>
+  ) : <div className={styles.emptyState}><Icon name="shopping-bag" size={25} /><strong>Belum ada produk tersedia</strong><p>Produk akan tampil setelah pelaku usaha mempublikasikannya.</p></div>;
+  const categoryStrip = () => (
     <div className={styles.categoryStrip} aria-label="Kategori produk">
-      {categories.map((category) => (
-        <button
-          className={`${styles.categoryItem} ${selectedCategory === category.id ? styles.categoryItemActive : ""}`}
-          type="button"
-          key={category.id}
-          onClick={() => setSelectedCategory(category.id)}
-          aria-pressed={selectedCategory === category.id}
-        >
-          <span className={styles.categoryIcon}><Icon name={category.icon} size={22} /></span>
-          <span>{category.label}</span>
-        </button>
-      ))}
+      {categories.map((item) => <button key={item.label} type="button" aria-pressed={category === item.label}
+        className={`${styles.categoryItem} ${category === item.label ? styles.categoryItemActive : ""}`}
+        onClick={() => setCategory(item.label)}>
+        <span className={styles.categoryIcon}><Icon name={item.icon} size={22} /></span><span>{item.label}</span>
+      </button>)}
     </div>
   );
-
-  const renderProductGrid = (items: Product[]) => {
-    if (items.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <span className={styles.emptyIcon}><Icon name="search" size={24} /></span>
-          <strong>Produk tidak ditemukan</strong>
-          <p>Coba gunakan kata kunci atau kategori yang berbeda.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className={styles.productGrid}>
-        {items.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            role={role}
-            onOpen={() => openProduct(product)}
-            onPrimary={() => (isSeller ? openProduct(product) : addToCart(product))}
-          />
-        ))}
+  const renderHome = () => <>
+    <section className={styles.welcomeRow}><h1>Halo, {firstName}</h1></section>
+    <label className={styles.searchBar}>
+      <Icon name="search" size={18} />
+      <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari ikan atau hasil laut..." aria-label="Cari produk" />
+      <button type="button" aria-label="Buka marketplace" onClick={() => { setSearch(""); setTab("marketplace"); }}><Icon name="filter" size={16} /></button>
+    </label>
+    <section className={styles.heroBanner}>
+      <Image src="/images/pon.jfif" alt="Budidaya perikanan" fill priority sizes="(max-width: 480px) 100vw, 440px" className={styles.heroImage} />
+      <div className={styles.heroShade}/>
+      <span className={styles.heroPill}><Icon name="waves" size={13} /> EKOSISTEM PERIKANAN</span>
+      <div className={styles.heroCopy}><p>DARI PESISIR UNTUK MASA DEPAN</p><h2>Jelajahi hasil laut. Dukung usaha lokal.</h2>
+        <button type="button" onClick={() => { setSearch(""); setTab("marketplace"); }}>Mulai jelajahi <Icon name="arrow-right" size={15} /></button>
       </div>
-    );
-  };
-
-  const renderHome = () => (
-    <>
-      <section className={styles.welcomeRow}>
-        <h1>Halo, {firstName}</h1>
+    </section>
+    <section className={styles.sectionBlock}><Heading>Kategori pilihan</Heading>{categoryStrip()}</section>
+    <section className={styles.sectionBlock}><Heading onMore={() => { setSearch(""); setTab("marketplace"); }}>Produk unggulan</Heading>{showProducts(visibleProducts.slice(0, 4))}</section>
+  </>;
+  const renderMarketplace = () => <>
+    <section className={styles.pageHeading}><h1>Marketplace Marivest</h1></section>
+    {categoryStrip()}
+    <section className={styles.sectionBlock}><Heading>Produk perikanan</Heading>{showProducts(products.filter((item) => category === "Semua" || item.category === category))}</section>
+  </>;
+  const renderInvestor = () => <>
+    <section className={styles.pageHeading}><h1>Investasi Maritim</h1><p>Yuk, investasi berbasis syariah dengan Marivest !</p></section>
+    {isInvestor ? <>
+      <section className={styles.sectionBlock}><Heading>Usaha yang membutuhkan pendanaan</Heading>
+        {projects.length ? <div className={styles.fundingList}>{projects.map((item) => <FundingCard key={item.id} project={item} onOpen={() => openProject(item)} />)}</div>
+          : <div className={styles.emptyState}><Icon name="wallet" size={25} /><strong>Belum ada pengajuan terbuka</strong><p>Proyek yang disetujui akan tampil di sini.</p></div>}
       </section>
-
-      <label className={styles.searchBar}>
-        <Icon name="search" size={18} />
-        <input
-          type="search"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="Cari ikan, hasil laut, atau usaha..."
-          aria-label="Cari produk atau usaha"
-        />
-        <button type="button" aria-label="Buka marketplace" onClick={() => setActiveTab("marketplace")}>
-          <Icon name="filter" size={16} />
-        </button>
-      </label>
-
-      <section className={styles.heroBanner}>
-        <Image
-          src="/images/pon.jfif"
-          alt="Area budidaya perikanan"
-          fill
-          priority
-          sizes="(max-width: 480px) 100vw, 440px"
-          className={styles.heroImage}
-        />
-        <div className={styles.heroShade} />
-        <span className={styles.heroPill}><Icon name="waves" size={13} /> EKOSISTEM PERIKANAN</span>
-        <div className={styles.heroCopy}>
-          <p>DARI PESISIR UNTUK MASA DEPAN</p>
-          <h2>Jelajahi hasil laut. Dukung usaha lokal.</h2>
-          <button type="button" onClick={() => setActiveTab("marketplace")}>
-            Mulai jelajahi <Icon name="arrow-right" size={15} />
-          </button>
-        </div>
+      <section className={styles.sectionBlock}><Heading>Komitmen Saya</Heading>
+        {commitments.length ? <div className={styles.notificationList}>{commitments.map((item) => (
+          <article className={styles.notificationCard} key={item.id}><span className={styles.notificationIcon}><Icon name="wallet" size={18}/></span>
+            <div><strong>{rupiah(item.amount)}</strong><p>Komitmen pendanaan tercatat</p><small>{new Date(item.createdAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small></div>
+          </article>
+        ))}</div> : <div className={styles.emptyState}><strong>Belum ada komitmen</strong></div>}
       </section>
-
-      <section className={styles.sectionBlock}>
-        <SectionHeading title="Kategori pilihan" />
-        {renderCategoryStrip()}
-      </section>
-
-      <section className={styles.sectionBlock}>
-        <SectionHeading
-          title="Produk unggulan"
-          action="Lihat semua"
-          onAction={() => setActiveTab("marketplace")}
-        />
-        {renderProductGrid(featuredList)}
-      </section>
-    </>
-  );
-
-  const renderMarketplace = () => (
-    <>
-      <section className={styles.pageHeading}>
-        <h1>Marketplace Marivest</h1>
-      </section>
-      {renderCategoryStrip()}
-      <section className={styles.sectionBlock}>
-        <SectionHeading title={`${filteredProducts.length} produk tersedia`} />
-        {renderProductGrid(filteredProducts)}
-      </section>
-    </>
-  );
-
-  const renderInvestorRegistration = () => (
-    <section className={styles.investorGate} aria-label="Pendaftaran Investor">
+    </> : <section className={styles.investorGate} aria-label="Pendaftaran Investor">
       <div className={styles.investorGateBackdrop} aria-hidden="true">
-        {projects.map((project) => (
-          <FundingCard
-            key={project.id}
-            project={project}
-            onOpen={() => undefined}
-            disabled
-          />
+        {["Tambak berkelanjutan", "Penguatan nelayan", "Pakan budidaya"].map((name, i) => (
+          <div key={name} className={styles.previewFundingCard}>
+            <Image src={["/images/pon.jfif", "/images/nelayan.jfif", "/images/tambak.jfif"][i]} alt="" width={100} height={100} />
+            <div><strong>{name}</strong><span>Ekosistem perikanan</span><span className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${(i + 2) * 19}%` }}/></span></div>
+          </div>
         ))}
       </div>
-      <div className={styles.investorGateOverlay}>
-        <div className={styles.investorGateCard}>
-          <span className={styles.investorGateIcon}>
-            <Icon name="shield-check" size={25} />
-          </span>
-          <button
-            className={styles.investorGateButton}
-            type="button"
-            onClick={() => setInvestorFormOpen(true)}
-          >
-            Daftar Investor Sekarang
-            <Icon name="arrow-right" size={16} />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-
-  const renderInvestorPage = () => (
-    <>
-      <section className={styles.pageHeading}>
-        <h1>Investasi Maritim</h1>
-        <p>Yuk, investasi berbasis syariah dengan Marivest !</p>
-      </section>
-
-      {investorRegistered ? (
-        <>
-          <section className={styles.sectionBlock}>
-            <SectionHeading title="Usaha yang membutuhkan pendanaan" />
-            <div className={styles.fundingList}>
-              {projects.map((project) => (
-                <FundingCard key={project.id} project={project} onOpen={() => openProject(project)} />
-              ))}
-            </div>
-          </section>
-          <div className={styles.investorRevokeRow}>
-            <button
-              className={styles.investorRevokeButton}
-              type="button"
-              onClick={() => setRevokeConfirmOpen(true)}
-            >
-              Cabut status Investor
-            </button>
-          </div>
-        </>
-      ) : (
-        renderInvestorRegistration()
-      )}
-    </>
-  );
-
-  const renderNotifications = () => (
-    <section className={styles.notificationsPage}>
-      <section className={styles.pageHeading}>
-        <h1>Notifikasi</h1>
-      </section>
-      <div className={styles.notificationList}>
-        <article className={styles.notificationCard}>
-          <span className={styles.notificationIcon}><Icon name="shopping-bag" size={19} /></span>
-          <div>
-            <strong>Produk pilihan tersedia</strong>
-            <p>Jelajahi produk hasil laut unggulan di Marketplace Marivest.</p>
-            <small>Baru saja</small>
-          </div>
-        </article>
-        <article className={styles.notificationCard}>
-          <span className={styles.notificationIcon}><Icon name="wallet" size={19} /></span>
-          <div>
-            <strong>Peluang investasi maritim</strong>
-            <p>Lihat daftar usaha yang sedang membuka peluang pendanaan.</p>
-            <small>Hari ini</small>
-          </div>
-        </article>
-        <article className={styles.notificationCard}>
-          <span className={styles.notificationIcon}><Icon name="info" size={19} /></span>
-          <div>
-            <strong>Selamat datang di Marivest</strong>
-            <p>Temukan produk dan peluang usaha dari ekosistem perikanan.</p>
-            <small>Informasi akun</small>
-          </div>
-        </article>
-      </div>
-    </section>
-  );
-
-  const renderProfile = () => (
-    <section className={styles.profilePage}>
-      <button className={styles.profileBack} type="button" onClick={() => setActiveTab("home")}>
-        <Icon name="chevron-right" size={15} /> Kembali
+      <div className={styles.investorGateOverlay}><div className={styles.investorGateCard}>
+        <span className={styles.investorGateIcon}><Icon name="shield-check" size={25}/></span>
+        <button className={styles.investorGateButton} type="button" onClick={() => setShowInvestorForm(true)}>Daftar Investor Sekarang <Icon name="arrow-right" size={16}/></button>
+      </div></div>
+    </section>}
+  </>;
+  const renderNotifications = () => <section className={styles.notificationsPage}>
+    <div className={styles.pageHeading}><h1>Notifikasi</h1></div>
+    {notifications.length ? <div className={styles.notificationList}>{notifications.map((item) => (
+      <button type="button" key={item.id} className={styles.notificationCard} onClick={() => { if (!item.isRead) perform(() => markNotificationReadAction(item.id)); }}>
+        <span className={styles.notificationIcon}><Icon name={item.isRead ? "info" : "bell"} size={19} /></span>
+        <span><strong>{item.title}{item.isRead ? "" : " · Baru"}</strong><p>{item.body}</p><small>{new Date(item.createdAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small></span>
       </button>
-      <section className={styles.profileHero}>
-        <div className={styles.profileAvatarLarge} aria-hidden="true">{initials}</div>
-        <div className={styles.profileIdentity}>
-          <p className={styles.sectionEyebrow}>PROFIL PENGGUNA</p>
-          <h1>{fullName}</h1>
-          <p>{profileRoleLabel}</p>
+    ))}</div> : <div className={styles.emptyState}><Icon name="bell" size={25}/><strong>Belum ada notifikasi</strong></div>}
+  </section>;
+  const renderProfile = () => <section className={styles.profilePage}>
+    <button type="button" className={styles.profileBack} onClick={() => setTab("home")}><Icon name="chevron-right" size={15}/> Kembali</button>
+    <section className={styles.profileHero}>
+      <div className={styles.profileAvatarLarge} aria-hidden="true">{initials}</div>
+      <div className={styles.profileIdentity}>
+        <p className={styles.sectionEyebrow}>PROFIL PENGGUNA</p><h1>{fullName}</h1>
+        <div className={styles.profileStatusLine}><span>{displayRole}</span>
+          {isInvestor ? <button className={styles.revokeInline} type="button" onClick={() => setConfirmRevoke(true)}>Cabut status</button> : null}
         </div>
-      </section>
-
-      <div className={styles.profileOptionList}>
-        <button type="button" className={styles.profileOption} onClick={() => showToast("Form ubah data profil akan disambungkan pada tahap berikutnya.")}>
-          <span>
-            <strong>Ubah Data Profil</strong>
-            <small>Perbarui nama, data diri, dan informasi akun.</small>
-          </span>
-          <Icon name="chevron-right" size={16} />
-        </button>
-        <button type="button" className={styles.profileOption} onClick={() => showToast("Fitur ganti kata sandi akan disambungkan pada tahap berikutnya.")}>
-          <span>
-            <strong>Ganti Kata Sandi</strong>
-            <small>Kelola keamanan akun Anda secara mandiri.</small>
-          </span>
-          <Icon name="chevron-right" size={16} />
-        </button>
-        <form action={signOutAction} className={styles.profileOptionForm}>
-          <button type="submit" className={`${styles.profileOption} ${styles.profileOptionDanger}`}>
-            <span>
-              <strong>Keluar</strong>
-              <small>Akhiri sesi dan kembali ke halaman login.</small>
-            </span>
-            <Icon name="arrow-right" size={16} />
-          </button>
-        </form>
       </div>
     </section>
-  );
+    <div className={styles.profileOptionList}>
+      <button type="button" className={styles.profileOption} onClick={() => setModal("editProfile")}><span><strong>Ubah Data Profil</strong><small>Perbarui nama dan informasi akun.</small></span><Icon name="chevron-right" size={16}/></button>
+      <button type="button" className={styles.profileOption} onClick={() => setModal("password")}><span><strong>Ganti Kata Sandi</strong><small>Kelola keamanan akun Anda.</small></span><Icon name="chevron-right" size={16}/></button>
+      <form action={signOutAction} className={styles.profileOptionForm}><button type="submit" className={`${styles.profileOption} ${styles.profileOptionDanger}`}><span><strong>Keluar</strong><small>Akhiri sesi aplikasi.</small></span><Icon name="arrow-right" size={16}/></button></form>
+    </div>
+  </section>;
 
-  return (
-    <main className={styles.page}>
-      <div className={styles.device}>
-        <header className={styles.topBar}>
-          <div className={styles.brand}>
-            <span className={styles.brandText}>
-              <strong>MARIVEST</strong>
-            </span>
-          </div>
-          <div className={styles.profileMenuWrap}>
-            <button
-              className={styles.avatarButton}
-              type="button"
-              onClick={() => setProfileMenuOpen((open) => !open)}
-              aria-label="Buka menu akun"
-              aria-expanded={profileMenuOpen}
-            >
-              {initials}
-            </button>
-            {profileMenuOpen ? (
-              <div className={styles.profileMenu}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                    setActiveTab("profile");
-                  }}
-                >
-                  <Icon name="user" size={16} />
-                  <span>Lihat Profil Saya</span>
-                </button>
-                <form action={signOutAction}>
-                  <button type="submit" className={styles.profileMenuLogout}>
-                    <Icon name="arrow-right" size={16} />
-                    <span>Keluar</span>
-                  </button>
-                </form>
-              </div>
-            ) : null}
-          </div>
-        </header>
-
-        <div className={styles.mainContent}>
-          {activeTab === "home" ? renderHome() : null}
-          {activeTab === "marketplace" ? renderMarketplace() : null}
-          {activeTab === "investor" ? renderInvestorPage() : null}
-          {activeTab === "notifications" ? renderNotifications() : null}
-          {activeTab === "profile" ? renderProfile() : null}
-
-          <footer className={styles.pageFooter}>
-            <span className={styles.footerBrand}>MARIVEST</span>
-            <p>Data pada tampilan ini merupakan demonstrasi frontend.</p>
-          </footer>
-        </div>
-
-        {activeTab !== "profile" ? (
-        <div className={styles.bottomDock}>
-          <nav className={styles.bottomNav} aria-label="Navigasi utama">
-            {navItems.filter((item) => role === "mitra" || item.id !== "investor").map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ""}`}
-                onClick={() => setActiveTab(item.id)}
-                aria-label={item.label}
-                aria-current={activeTab === item.id ? "page" : undefined}
-              >
-                <span className={styles.navIconWrap}>
-                  <Icon name={item.icon} size={20} filled={item.id === "home" && activeTab === "home"} />
-                </span>
-              </button>
-            ))}
-          </nav>
-          <button
-            className={styles.cartDockButton}
-            type="button"
-            onClick={() => setModal("cart")}
-            aria-label="Buka keranjang"
-          >
-            <Icon name="cart" size={21} />
-            {cartIds.length > 0 ? <span className={styles.cartBadge}>{cartIds.length}</span> : null}
-          </button>
-        </div>
-        ) : null}
-
-        {toast ? (
-          <div className={styles.toast} role="status">
-            <Icon name="info" size={16} />
-            <span>{toast}</span>
-            <button type="button" onClick={() => setToast("")} aria-label="Tutup pesan">
-              <Icon name="close" size={14} />
-            </button>
-          </div>
-        ) : null}
-
-        {revokeConfirmOpen ? (
-          <Modal
-            title="Cabut status Investor?"
-            subtitle="Akses ke peluang pendanaan akan dinonaktifkan. Anda dapat mendaftar kembali nanti."
-            onClose={() => setRevokeConfirmOpen(false)}
-          >
-            {revokeActionState.status === "error" ? (
-              <p className={styles.investorActionError} role="alert">{revokeActionState.message}</p>
-            ) : null}
-            <form action={revokeFormAction} className={styles.revokeConfirmForm}>
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() => setRevokeConfirmOpen(false)}
-              >
-                Batal
-              </button>
-              <button className={styles.primaryButton} type="submit" disabled={isRevoking}>
-                {isRevoking ? "Memproses..." : "Ya, cabut akses"}
-              </button>
-            </form>
-          </Modal>
-        ) : null}
-
-        {investorFormOpen ? (
-          <Modal
-            title="Pendaftaran Investor"
-            subtitle="Lengkapi data berikut untuk mengaktifkan akses Investor MARIVEST."
-            onClose={() => setInvestorFormOpen(false)}
-          >
-            <form action={investorFormAction} className={styles.demoForm}>
-              <label>
-                Nomor WhatsApp
-                <input
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  minLength={8}
-                  maxLength={24}
-                  placeholder="Contoh: 081234567890"
-                  autoComplete="tel"
-                  required
-                />
-              </label>
-              <label>
-                Domisili
-                <input
-                  name="city"
-                  type="text"
-                  minLength={2}
-                  maxLength={100}
-                  placeholder="Kota / Kabupaten"
-                  autoComplete="address-level2"
-                  required
-                />
-              </label>
-              <label>
-                Alasan bergabung (opsional)
-                <textarea
-                  name="reason"
-                  rows={3}
-                  maxLength={500}
-                  defaultValue="Saya ingin mulai berinvestasi di sektor maritim."
-                  placeholder="Tuliskan minat Anda sebagai investor..."
-                />
-              </label>
-              {investorActionState.status === "error" ? (
-                <p className={styles.investorActionError} role="alert">{investorActionState.message}</p>
-              ) : null}
-              <button className={styles.primaryButton} type="submit" disabled={isInvestorPending}>
-                {isInvestorPending ? "Menyimpan pendaftaran..." : "Daftar Investor Sekarang"}
-                <Icon name="arrow-right" size={16} />
-              </button>
-            </form>
-          </Modal>
-        ) : null}
-
-        {modal === "cart" ? (
-          <Modal title="Keranjang demo" subtitle="Produk pilihanmu untuk simulasi pemesanan." onClose={() => setModal(null)}>
-            {cartProducts.length > 0 ? (
-              <div className={styles.cartList}>
-                {cartProducts.map((product, index) => (
-                  <article className={styles.cartItem} key={`${product.id}-${index}`}>
-                    <div className={styles.cartItemImage}>
-                      <Image src={product.image} alt={product.name} fill sizes="64px" />
-                    </div>
-                    <div className={styles.cartItemInfo}>
-                      <strong>{product.name}</strong>
-                      <span>{formatCurrency(product.price)} / {product.unit}</span>
-                    </div>
-                    <button
-                      className={styles.removeButton}
-                      type="button"
-                      onClick={() => setCartIds((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                      aria-label={`Hapus ${product.name}`}
-                    >
-                      <Icon name="close" size={15} />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className={styles.emptyCart}>
-                <Icon name="cart" size={30} />
-                <strong>Keranjang masih kosong</strong>
-                <p>Tambahkan produk dari marketplace untuk melihat simulasi pesanan.</p>
-              </div>
-            )}
-            <div className={styles.cartTotalRow}><span>Subtotal demo</span><strong>{formatCurrency(cartTotal)}</strong></div>
-            <button className={styles.primaryButton} type="button" onClick={() => { setModal(null); showToast("Simulasi checkout belum dihubungkan ke transaksi nyata."); }}>
-              Lanjutkan simulasi <Icon name="arrow-right" size={16} />
-            </button>
-          </Modal>
-        ) : null}
-
-        {modal === "product" && selectedProduct ? (
-          <Modal title="Detail produk" subtitle="Informasi produk dari marketplace MARIVEST." onClose={() => setModal(null)}>
-            <div className={styles.detailImage}>
-              <Image src={selectedProduct.image} alt={selectedProduct.name} fill sizes="420px" className={styles.detailImageTag} />
-            </div>
-            <span className={styles.detailCategory}>{selectedProduct.category}</span>
-            <h3 className={styles.detailTitle}>{selectedProduct.name}</h3>
-            <p className={styles.detailDescription}>{selectedProduct.description}</p>
-            <div className={styles.detailMeta}>
-              <span><Icon name="map-pin" size={14} /> {selectedProduct.location}</span>
-              <span><Icon name="shopping-bag" size={14} /> {selectedProduct.seller}</span>
-            </div>
-            <div className={styles.detailPrice}>{formatCurrency(selectedProduct.price)} <small>/ {selectedProduct.unit}</small></div>
-            <button
-              className={styles.primaryButton}
-              type="button"
-              onClick={() => {
-                if (isSeller) {
-                  setModal(null);
-                  showToast("Halaman pengelolaan produk akan dihubungkan pada tahap berikutnya.");
-                } else {
-                  addToCart(selectedProduct);
-                  setModal(null);
-                }
-              }}
-            >
-              {isSeller ? "Kelola produk" : "Tambah ke keranjang"} <Icon name="arrow-right" size={16} />
-            </button>
-          </Modal>
-        ) : null}
-
-        {modal === "project" && selectedProject ? (
-          <Modal title="Detail investasi" subtitle="Investasi Maritim · Simulasi frontend" onClose={() => setModal(null)}>
-            <div className={styles.detailImage}>
-              <Image src={selectedProject.image} alt={selectedProject.title} fill sizes="420px" className={styles.detailImageTag} />
-            </div>
-            <span className={styles.detailCategory}>{selectedProject.category}</span>
-            <h3 className={styles.detailTitle}>{selectedProject.title}</h3>
-            <p className={styles.detailDescription}>{selectedProject.description}</p>
-            <div className={styles.projectDetailStats}>
-              <div><small>Target</small><strong>{formatCurrency(selectedProject.target)}</strong></div>
-              <div><small>Terkumpul</small><strong>{formatCurrency(selectedProject.raised)}</strong></div>
-            </div>
-            <div className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${Math.min(100, Math.round((selectedProject.raised / selectedProject.target) * 100))}%` }} /></div>
-            <p className={styles.projectStatus}><Icon name="shield-check" size={14} /> {selectedProject.status}</p>
-            <button className={styles.primaryButton} type="button" onClick={() => { setModal(null); showToast("Minat investasi berhasil dicatat dalam mode demo frontend."); }}>
-              Saya tertarik <Icon name="arrow-right" size={16} />
-            </button>
-          </Modal>
-        ) : null}
+  return <main className={styles.page}><div className={styles.device}>
+    <header className={styles.topBar}>
+      <div className={styles.brand}><span className={styles.brandText}><strong>MARIVEST</strong></span></div>
+      <div className={styles.profileMenuWrap}>
+        <button className={styles.avatarButton} type="button" aria-label="Menu akun" aria-expanded={profileMenu} onClick={() => setProfileMenu((value) => !value)}>{initials}</button>
+        {profileMenu ? <div className={styles.profileMenu}>
+          <button type="button" onClick={() => { setProfileMenu(false); setTab("profile"); }}><Icon name="user" size={16}/> Lihat Profil Saya</button>
+          <form action={signOutAction}><button type="submit" className={styles.profileMenuLogout}><Icon name="arrow-right" size={16}/> Keluar</button></form>
+        </div> : null}
       </div>
-    </main>
-  );
+    </header>
+    <div className={styles.mainContent}>
+      {dataError ? <div className={styles.dataWarning} role="alert">{dataError}</div> : null}
+      {tab === "home" ? renderHome() : null}
+      {tab === "marketplace" ? renderMarketplace() : null}
+      {tab === "investor" ? renderInvestor() : null}
+      {tab === "notifications" ? renderNotifications() : null}
+      {tab === "profile" ? renderProfile() : null}
+    </div>
+    {tab !== "profile" ? <div className={styles.bottomDock}>
+      <nav className={styles.bottomNav} aria-label="Navigasi utama">{nav.filter((item) => !isSeller || item.id !== "investor").map((item) => (
+        <button key={item.id} type="button" className={`${styles.navItem} ${tab === item.id ? styles.navItemActive : ""}`}
+          onClick={() => setTab(item.id)} aria-label={item.label} aria-current={tab === item.id ? "page" : undefined}>
+          <span className={styles.navIconWrap}><Icon name={item.icon} size={20} filled={item.id === "home" && tab === "home"} /></span>
+        </button>
+      ))}</nav>
+      <button className={styles.cartDockButton} type="button" onClick={() => setModal("cart")} aria-label="Keranjang">
+        <Icon name="cart" size={21}/>{cart.length ? <span className={styles.cartBadge}>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span> : null}
+      </button>
+    </div> : null}
+    {toast ? <div className={styles.toast} role="status"><Icon name="info" size={16}/><span>{toast}</span><button type="button" aria-label="Tutup pesan" onClick={() => setToast("")}><Icon name="close" size={14}/></button></div> : null}
+
+    {showInvestorForm ? <Modal title="Pendaftaran Investor" subtitle="Lengkapi identitas dan profil investor Anda." onClose={() => setShowInvestorForm(false)}>
+      <form action={registerAction} className={styles.demoForm}>
+        <label>Nama lengkap<input value={fullName} readOnly /></label>
+        <label>Email<input type="email" value={email} readOnly /></label>
+        <label>Jenis investor<select name="investor_type" value={investorType} onChange={(e) => setInvestorType(e.target.value)} required>
+          <option value="individual">Individual Investor</option><option value="institutional">Institutional Investor</option><option value="impact">Impact Investor</option>
+        </select></label>
+        <label>Pekerjaan<input name="occupation" required minLength={2} maxLength={100} placeholder="Pekerjaan Anda" /></label>
+        {investorType === "institutional" ? <label>Nama institusi<input name="institution_name" required minLength={2} maxLength={150} placeholder="Nama institusi" /></label> : null}
+        <label>Penghasilan bulanan (opsional)<input name="monthly_income" type="number" min="0" max="1000000000000" step="1" inputMode="numeric" placeholder="Rupiah" /></label>
+        <label>Nomor WhatsApp<input name="phone" type="tel" required minLength={8} maxLength={24} placeholder="081234567890" autoComplete="tel" /></label>
+        <label>Domisili<input name="city" required minLength={2} maxLength={100} placeholder="Kota / Kabupaten" /></label>
+        <div className={styles.interestGroup}><strong>Minat investasi (opsional)</strong><div className={styles.interestOptions}>{interests.map(([value, label]) => (
+          <label key={value}><input type="checkbox" name="investment_interests" value={value}/>{label}</label>
+        ))}</div></div>
+        <label>Alasan bergabung (opsional)<textarea name="reason" rows={3} maxLength={500} placeholder="Mengapa tertarik dengan MARIVEST?"/></label>
+        {registerState.status === "error" ? <p className={styles.investorActionError} role="alert">{registerState.message}</p> : null}
+        <p className={styles.privacyNote}>Informasi penghasilan hanya untuk profil pribadi dan tidak ditampilkan di Marketplace.</p>
+        <button className={styles.primaryButton} type="submit" disabled={registering}>{registering ? "Menyimpan..." : "Kirim Pendaftaran"}</button>
+      </form>
+    </Modal> : null}
+    {confirmRevoke ? <Modal title="Cabut status Investor?" subtitle="Akses pendanaan akan dinonaktifkan. Anda tetap bisa menggunakan Marketplace." onClose={() => setConfirmRevoke(false)}>
+      {revokeState.status === "error" ? <p className={styles.investorActionError} role="alert">{revokeState.message}</p> : null}
+      <form action={revokeAction} className={styles.revokeConfirmForm}><button type="button" className={styles.secondaryButton} onClick={() => setConfirmRevoke(false)}>Batal</button>
+        <button className={styles.primaryButton} type="submit" disabled={revoking}>{revoking ? "Memproses..." : "Ya, cabut status"}</button>
+      </form>
+    </Modal> : null}
+    {modal === "product" && product ? <Modal title="Detail produk" onClose={() => setModal(null)}>
+      <div className={styles.detailImage}><Image src={product.image} alt={product.name} fill unoptimized sizes="420px" className={styles.detailImageTag}/></div>
+      <span className={styles.detailCategory}>{product.category}</span><h3 className={styles.detailTitle}>{product.name}</h3>
+      <p className={styles.detailDescription}>{product.description || "Hasil perikanan berkualitas dari mitra MARIVEST."}</p>
+      <div className={styles.detailMeta}><span><Icon name="shopping-bag" size={14}/>{product.seller}</span><span><Icon name="map-pin" size={14}/>{product.location}</span>
+        <span>Stok tersedia: {product.stock} {product.unit}</span></div>
+      <div className={styles.detailPrice}>{rupiah(product.price)} <small>/{product.unit}</small></div>
+      {!isSeller ? <><div className={styles.qtySelector}><span>Jumlah</span><div><button type="button" onClick={() => setQty((n) => Math.max(1, n - 1))} disabled={busy}>−</button><strong>{qty}</strong>
+        <button type="button" onClick={() => setQty((n) => Math.min(product.stock, n + 1))} disabled={busy || qty >= product.stock}>+</button></div></div>
+        <button type="button" className={styles.primaryButton} disabled={busy || product.stock === 0} onClick={() => perform(
+          () => setCartQuantityAction(product.id, (cart.find((c) => c.productId === product.id)?.quantity ?? 0) + qty), () => setModal(null),
+        )}>{busy ? "Menyimpan..." : "Tambah ke keranjang"}</button></> : null}
+    </Modal> : null}
+    {modal === "cart" ? <Modal title="Keranjang" onClose={() => setModal(null)}>
+      {cart.length ? <div className={styles.cartList}>{cart.map((entry) => <article className={styles.cartItem} key={entry.id}>
+        <div className={styles.cartItemImage}><Image src={entry.product.image} alt={entry.product.name} fill unoptimized sizes="64px" /></div>
+        <div className={styles.cartItemInfo}><strong>{entry.product.name}</strong><span>{rupiah(entry.product.price)} / {entry.product.unit}</span>
+          <div className={styles.cartControls}><button type="button" disabled={busy} onClick={() => perform(() => setCartQuantityAction(entry.productId, entry.quantity - 1))}>−</button><b>{entry.quantity}</b><button type="button" disabled={busy} onClick={() => perform(() => setCartQuantityAction(entry.productId, entry.quantity + 1))}>+</button></div>
+        </div>
+        <button className={styles.removeButton} type="button" disabled={busy} onClick={() => perform(() => setCartQuantityAction(entry.productId, 0))} aria-label={`Hapus ${entry.product.name}`}><Icon name="close" size={15}/></button>
+      </article>)}</div> : <div className={styles.emptyCart}><Icon name="cart" size={28}/><strong>Keranjang kosong</strong><p>Tambahkan produk dari Marketplace.</p></div>}
+      <div className={styles.cartTotalRow}><span>Subtotal</span><strong>{rupiah(subtotal)}</strong></div>
+      <p className={styles.privacyNote}>Pemesanan dicatat tanpa pembayaran atau pengiriman otomatis.</p>
+      <button type="button" className={styles.primaryButton} disabled={busy || cart.length === 0} onClick={() => perform(checkoutCartAction, () => setModal("orders"))}>{busy ? "Memproses..." : "Buat Pesanan"}</button>
+      <button type="button" className={styles.secondaryButton} onClick={() => setModal("orders")}>Riwayat Pesanan</button>
+    </Modal> : null}
+    {modal === "orders" ? <Modal title="Riwayat Pesanan" onClose={() => setModal(null)}>
+      {orders.length ? <div className={styles.orderList}>{orders.map((item) => <article className={styles.orderCard} key={item.id}>
+        <div className={styles.orderInfo}><strong>{item.productName}</strong><span>{item.quantity} {item.unit} · {statusLabels[item.status]}</span><b>{rupiah(item.total)}</b>
+          <small>{new Date(item.date).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</small></div>
+      </article>)}</div> : <div className={styles.emptyCart}><strong>Belum ada pesanan</strong></div>}
+    </Modal> : null}
+    {modal === "project" && project ? <Modal title="Detail investasi" subtitle="Pendanaan berbasis komitmen tanpa transfer dana." onClose={() => setModal(null)}>
+      <div className={styles.detailImage}><Image src={project.image} alt={project.title} fill unoptimized sizes="420px" className={styles.detailImageTag}/></div>
+      <span className={styles.detailCategory}>{project.category}</span><h3 className={styles.detailTitle}>{project.title}</h3>
+      <p className={styles.detailDescription}>{project.description}</p><p className={styles.detailDescription}><strong>Tujuan:</strong> {project.purpose}</p>
+      <div className={styles.detailMeta}><span><Icon name="shopping-bag" size={14}/>{project.business}</span><span><Icon name="map-pin" size={14}/>{project.location}</span></div>
+      <div className={styles.projectDetailStats}><div><small>Target</small><strong>{rupiah(project.target)}</strong></div><div><small>Komitmen</small><strong>{rupiah(project.raised)}</strong></div></div>
+      <div className={styles.progressTrack}><span className={styles.progressFill} style={{ width: `${fundingPercent(project.raised, project.target)}%` }}/></div>
+      <p className={styles.privacyNote}>Porsi bagi hasil investor {Math.round(project.investorShareRatio * 100)}% dari laba yang benar-benar tercapai. Bukan janji keuntungan.</p>
+      <label className={styles.actionField}>Nominal komitmen (Rp)<input type="number" min="1" step="1" inputMode="numeric" value={fundingAmount} onChange={(e) => { setFundingAmount(e.target.value); setFundingKey(null); }} placeholder="Masukkan nominal" /></label>
+      <p className={styles.privacyNote}>Sisa target: {rupiah(remainingTarget(project.raised, project.target))}</p>
+      <button type="button" className={styles.primaryButton} disabled={busy || !validateCommitment(Number(fundingAmount), remainingTarget(project.raised, project.target))} onClick={() => {
+        const key = fundingKey ?? crypto.randomUUID();
+        setFundingKey(key);
+        perform(() => commitFundingAction(project.id, Number(fundingAmount), key), () => { setFundingKey(null); setModal(null); });
+      }}>{busy ? "Menyimpan..." : "Catat Komitmen"}</button>
+    </Modal> : null}
+    {modal === "editProfile" ? <Modal title="Ubah Data Profil" onClose={() => setModal(null)}>
+      <div className={styles.demoForm}><label>Nama lengkap<input value={newName} maxLength={100} onChange={(e) => setNewName(e.target.value)}/></label>
+        <button type="button" className={styles.primaryButton} disabled={busy} onClick={() => perform(() => changeProfileNameAction(newName), () => setModal(null))}>Simpan Profil</button></div>
+    </Modal> : null}
+    {modal === "password" ? <Modal title="Ganti Kata Sandi" onClose={() => setModal(null)}>
+      <div className={styles.demoForm}><label>Password baru<input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></label>
+        <label>Konfirmasi password<input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></label>
+        <button type="button" className={styles.primaryButton} disabled={busy} onClick={() => perform(() => changePasswordAction(newPassword, confirmPassword), () => { setModal(null); setNewPassword(""); setConfirmPassword(""); })}>Ubah Password</button></div>
+    </Modal> : null}
+  </div></main>;
 }

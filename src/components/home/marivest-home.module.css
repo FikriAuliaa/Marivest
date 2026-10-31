@@ -2103,3 +2103,35 @@
 .revokeConfirmForm > button {
   flex: 1 1 130px;
 }
+
+/* Connected Mitra marketplace / investment additions */
+.dataWarning { margin-bottom: 12px; padding: 12px 14px; color: #7a4050; background: #fff2f3; border: 1px solid #eedce0; border-radius: 14px; font-size: 12px; }
+.privacyNote { color: #68788e; font-size: 11px; line-height: 1.55; margin: 10px 0; }
+.previewFundingCard { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 112px; border-radius: 20px; background: #f5f6f8; border: 1px solid #fff; }
+.previewFundingCard img { width: 96px; height: 88px; border-radius: 14px; object-fit: cover; }
+.previewFundingCard div { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 8px; }
+.previewFundingCard strong { font-size: 14px; color: #08152d; }
+.previewFundingCard span { color: #75849a; font-size: 11px; }
+.previewFundingCard .progressTrack { display: block; width: 90%; }
+.demoForm select, .actionField input { width: 100%; padding: 13px 14px; border: 1px solid rgba(130,145,165,.28); border-radius: 16px; background: #f7f9fc; color: #08152d; outline: none; font: inherit; }
+.interestGroup { display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: #08152d; }
+.interestOptions { display: flex; flex-wrap: wrap; gap: 8px; }
+.interestOptions label { display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid #e0e6ef; border-radius: 14px; background: #f6f8fb; font-size: 11px; cursor: pointer; }
+.interestOptions input { width: auto; accent-color: #08152d; }
+.profileStatusLine { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 7px; color: #e8edf4; font-size: 12px; }
+.profileStatusLine span { min-width: 0; }
+.revokeInline { color: #b7384c; background: #fff0f1; border: 1px solid rgba(220,80,100,.2); border-radius: 999px; padding: 5px 8px; font-size: 9px; font-weight: 650; cursor: pointer; }
+.revokeInline:hover, .revokeInline:focus-visible { color: #fff; background: #a33648; }
+.qtySelector, .cartControls, .cartTotalRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.qtySelector { margin: 15px 0; color: #08152d; font-size: 13px; }
+.qtySelector > div, .cartControls { display: flex; align-items: center; gap: 10px; }
+.qtySelector button, .cartControls button { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: #08152d; background: #e8edf4; border: none; cursor: pointer; }
+.qtySelector button:disabled, .cartControls button:disabled { opacity: .5; cursor: not-allowed; }
+.cartControls { justify-content: flex-start; margin-top: 9px; font-size: 12px; }
+.modalBody > .primaryButton, .modalBody > .secondaryButton { width: 100%; margin-top: 9px; }
+.actionField { display: flex; flex-direction: column; gap: 8px; color: #08152d; margin: 16px 0 8px; font-size: 12px; font-weight: 650; }
+.notificationCard { width: 100%; color: #08152d; text-align: left; }
+.notificationCard > span:last-child { min-width: 0; flex: 1; }
+.notificationCard > span:last-child strong { display: block; }
+.notificationCard > span:last-child p { margin: 5px 0; }
+.emptyState { margin: 10px 0; }
