@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GlassButton } from "@/components/ui/glass-button";
 
@@ -57,6 +57,24 @@ export function OnboardingFlow() {
   const router = useRouter();
   const currentSlide = useMemo(() => heroSlides[step], [step]);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyHeight = body.style.height;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.height = "100dvh";
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+      body.style.height = previousBodyHeight;
+    };
+  }, []);
+
   const handleNext = () => {
     if (step < heroSlides.length) {
       setStep((previous) => previous + 1);
@@ -66,10 +84,10 @@ export function OnboardingFlow() {
   };
 
   return (
-    <main className="min-h-dvh bg-[#08152d] text-white">
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-hidden bg-slate-950 shadow-[0_30px_120px_rgba(0,0,0,0.32)] [container-type:inline-size] md:rounded-[36px] md:border md:border-white/10">
+    <main className="fixed inset-0 h-dvh w-full overflow-hidden overscroll-none bg-[#08152d] text-white">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden bg-slate-950 shadow-[0_30px_120px_rgba(0,0,0,0.32)] [container-type:inline-size] md:rounded-[36px] md:border md:border-white/10">
         {step < heroSlides.length ? (
-          <section className="relative h-dvh min-h-[540px] w-full overflow-hidden">
+          <section className="relative h-full min-h-0 w-full overflow-hidden">
             <div className="absolute inset-0">
               <Image
                 src={currentSlide.image}
@@ -123,21 +141,21 @@ export function OnboardingFlow() {
             </div>
           </section>
         ) : (
-          <section className="relative flex min-h-screen flex-col overflow-hidden bg-[#101827] px-5 pb-8 pt-14">
+          <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#101827] px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-[clamp(28px,7dvh,56px)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_78%,rgba(101,133,196,0.42),transparent_42%),linear-gradient(180deg,#151a26_0%,#101827_58%,#526a9d_100%)]" />
             <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.7)_1px,transparent_0)] [background-size:22px_22px]" />
 
-            <div className="relative z-10 mx-auto w-full max-w-sm text-center">
-              <h1 className="text-balance text-[2.3rem] font-semibold leading-[1.12] tracking-[-0.035em] text-white sm:text-[2.65rem]">
+            <div className="relative z-10 mx-auto w-full max-w-sm shrink-0 text-center">
+              <h1 className="text-balance text-[clamp(1.75rem,7.8vw,2.3rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[2.65rem]">
                 Selamat datang di Marivest
               </h1>
-              <p className="mx-auto mt-5 max-w-[23rem] text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+              <p className="mx-auto mt-3 max-w-[23rem] text-[clamp(0.78rem,3.6vw,1rem)] leading-[1.45] text-white/85 sm:mt-5 sm:text-lg sm:leading-8">
                 Mengubah sektor maritim Indonesia menjadi ruang investasi yang adil, bukan lagi sekadar kerja keras tanpa hasil yang sepadan.
               </p>
             </div>
 
             {/* Larger overlapping image cards. Hover, focus, or tap reveals each category. */}
-            <div className="relative z-10 mt-auto flex min-h-[420px] items-end justify-center overflow-visible pb-6 pt-10">
+            <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center overflow-visible py-3">
               <div className="flex w-full items-end justify-center">
                 {imageCards.map((card, index) => {
                   const isActive = activeCard === card.id;
@@ -153,7 +171,7 @@ export function OnboardingFlow() {
                       onBlur={() => setActiveCard(null)}
                       onClick={() => setActiveCard((current) => current === card.id ? null : card.id)}
                       className={[
-                        "group relative h-[330px] w-[220px] shrink-0 overflow-hidden rounded-[26px] border border-white/35 bg-white/10 shadow-[0_26px_58px_rgba(0,0,0,0.42)] transition-all duration-300 ease-out",
+                        "group relative h-[clamp(220px,40dvh,330px)] w-[clamp(150px,50vw,205px)] shrink-0 overflow-hidden rounded-[26px] border border-white/35 bg-white/10 shadow-[0_26px_58px_rgba(0,0,0,0.42)] transition-all duration-300 ease-out",
                         "focus-visible:z-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
                         "active:translate-y-2 active:scale-[0.97] active:rotate-0",
                         isActive
@@ -192,7 +210,7 @@ export function OnboardingFlow() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-auto">
+            <div className="relative z-10 mt-auto shrink-0">
               <GlassButton fullWidth onClick={() => router.push("/login")}>
                 Masuk ke MARIVEST
               </GlassButton>

@@ -2144,3 +2144,25 @@
 }
 .projectDetailStats small { color: #c1ccda; }
 .projectDetailStats strong { color: #fff; overflow-wrap: anywhere; }
+
+
+/* Mobile category selection: keep the selected pictogram white on the navy icon disc. */
+.categoryItem {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.categoryItemActive {
+  color: var(--muted);
+}
+
+.categoryItemActive .categoryIcon {
+  color: #ffffff;
+  border-color: #08152d;
+  background: #08152d;
+  box-shadow: 0 9px 20px rgba(8, 21, 45, 0.2);
+}
+
+.categoryItem:focus-visible .categoryIcon {
+  outline: 2px solid rgba(8, 21, 45, 0.45);
+  outline-offset: 3px;
+}

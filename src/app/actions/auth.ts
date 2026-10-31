@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth/profile";
 import type { AuthActionState } from "@/lib/auth/types";
 
 function errorMessage(message: string) {
@@ -53,7 +54,12 @@ export async function signInAction(
     return { status: "error", message: errorMessage(error.message) };
   }
 
-  redirect("/dashboard");
+  const profile = await requireProfile();
+  if (profile.role === "superadmin") {
+    redirect("/admin");
+  }
+
+  redirect("/welcome");
 }
 
 export async function signUpAction(

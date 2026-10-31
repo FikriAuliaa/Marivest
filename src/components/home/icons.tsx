@@ -2,6 +2,8 @@ import type { SVGProps } from "react";
 
 export type IconName =
   | "fish"
+  | "shrimp"
+  | "wheat"
   | "home"
   | "search"
   | "heart"
@@ -57,6 +59,20 @@ export function Icon({
   };
 
   switch (name) {
+    case "wheat":
+      return (
+        <svg {...common}>
+          <path d="M7 21c2.1-4.2 5.1-9.5 10-15.5" />
+          <path d="M14 10c-2.8-.2-4.4-1.8-4.5-4.5 2.8.1 4.4 1.7 4.5 4.5Z" />
+          <path d="M11.5 13.8c-2.8-.1-4.5-1.6-4.6-4.3 2.8.1 4.5 1.6 4.6 4.3Z" />
+          <path d="M9 17.4c-2.8.1-4.6-1.3-4.9-3.9 2.8-.2 4.7 1.2 4.9 3.9Z" />
+          <path d="M14.1 9.9c2.7.2 4.5-1.2 4.9-3.8-2.8-.3-4.6 1.1-4.9 3.8Z" />
+          <path d="M11.7 13.5c2.7.5 4.7-.7 5.3-3.2-2.7-.6-4.7.6-5.3 3.2Z" />
+          <path d="M9.3 17.2c2.5.8 4.7-.1 5.7-2.5-2.6-1-4.8-.1-5.7 2.5Z" />
+          <path d="M4.5 21h5" />
+        </svg>
+      );
+
     case "fish":
       return (
         <svg {...common}>
@@ -64,6 +80,16 @@ export function Icon({
           <path d="m3 12-1.5-3v6L3 12Z" />
           <path d="M12 8.8c1.2 1.8 1.2 4.6 0 6.4" />
           <circle cx="16.2" cy="10.2" r=".7" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "shrimp":
+      return (
+        <svg {...common}>
+          <path d="M19.2 5.2c-3.6-1.4-7.6-.4-10.1 2.2-2.5 2.6-2.8 6.2-.7 8.5 2.2 2.4 6 2.5 8.8.3 1.8-1.4 2.8-3.4 2.8-5.5" />
+          <path d="m19.2 10.7 2.7-2.4.1 3.3-2.8 2.4" />
+          <path d="M9.2 7.1 6.4 4.5M7.8 8.5 3.7 7.1M11.2 16.3l-1.4 3M14.4 16.2l.1 3.2M17.1 14.8l1.3 2.7" />
+          <path d="m10.2 7.7 1.5 4.1m1.1-5.2 1.2 5.5m1.5-5.2.7 5.2" />
+          <circle cx="17.1" cy="7.3" r=".8" fill="currentColor" stroke="none" />
         </svg>
       );
     case "home":
